@@ -18,7 +18,7 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: { main: '#1976d2' },
-    background: { default: '#f8f9fa', paper: '#fff' }, 
+    background: { default: '#f8f9fa', paper: '#fff' },
   },
   typography: {
     fontFamily: 'Poppins, sans-serif',
@@ -75,7 +75,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
   const [openLevel, setOpenLevel] = useState("8.2");
   const [closeLevel, setCloseLevel] = useState("7.8");
   const isMobile = useMediaQuery('(max-width:600px)');
-  
+
   useEffect(() => {
     const fetchData = async () => {
       const querySnapshot = await getDocs(collection(db, collectionName));
@@ -142,7 +142,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
             <TextField
               value={rows[rowIndex]?.[col] || ''}
               onChange={(e) => handleChange(e, rowIndex, col)}
-              InputProps={{ sx: { padding: 0 } }}
+              InputProps={{ sx: { padding: 0, height: '56px' } }}
               sx={{ flex: 2 }}
               variant="standard"
             />
@@ -153,18 +153,19 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
         <Typography variant="body2" sx={{ flex: 1 }}>Signature:</Typography>
         <div
           onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-          style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
+          style={{ cursor: 'pointer', border: '1px solid #000', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
         >
           {rows[rowIndex]?.['Signature'] ? (
             <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
           ) : (
-            'Click to Sign'
+            'Sign'
           )}
         </div>
       </Box>
       <Divider />
     </Box>
   );
+
 
   return (
     <>
@@ -177,16 +178,14 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
                   {collectionName === 'chilledWater' ? 'Date' : 'Product Name'} {/* Conditional label */}
                 </TableCell>
-                {columnLabels.map((col, index) =>
-                  col !== 'Signature' ? (
-                    <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>{col}</TableCell>
-                  ) : (
-                    <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Signature</TableCell>
-                  )
-                )}
+                {columnLabels.map((col, index) => (
+                  <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                    {col}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -194,73 +193,116 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                 <TableRow>
                   <TableCell sx={{ padding: '8px' }}>Blowdown Set-point</TableCell>
                   <TableCell colSpan={columnLabels.length - 1} sx={{ padding: '8px', textAlign: 'center' }}>
-                    Open Level <TextField value={openLevel} onChange={(e) => setOpenLevel(e.target.value)} sx={{ width: '50px', padding: 0 }} InputProps={{ sx: { padding: 0 } }} /> &
-                    Close Level <TextField value={closeLevel} onChange={(e) => setCloseLevel(e.target.value)} sx={{ width: '50px', padding: 0 }} InputProps={{ sx: { padding: 0 } }} />
+                    Open Level <TextField value={openLevel} onChange={(e) => setOpenLevel(e.target.value)} sx={{ width: '50px', padding: 0, height: '56px' }} InputProps={{ sx: { padding: 0, height: '56px' } }} /> &
+                    Close Level <TextField value={closeLevel} onChange={(e) => setCloseLevel(e.target.value)} sx={{ width: '50px', padding: 0, height: '56px' }} InputProps={{ sx: { padding: 0, height: '56px' } }} />
                   </TableCell>
                 </TableRow>
               )}
               {rowLabels.map((rowLabel, rowIndex) => (
-                <TableRow key={rowIndex}>
-                  <TableCell sx={{ padding: '8px' }}>{rowLabel}</TableCell>
-                  {columnLabels.map((col, colIndex) => (
-                    col === 'Signature' ? (
-                      <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                        <div
-                          onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-                          style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          {rows[rowIndex]?.['Signature'] ? (
-                            <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                          ) : (
-                            'Click to Sign'
-                          )}
-                        </div>
-                      </TableCell>
+                <React.Fragment key={rowIndex}>
+                  <TableRow>
+                    <TableCell sx={{ padding: '8px' }}>{rowLabel}</TableCell>
+                    {collectionName === 'chilledWater' ? (
+                      <>
+                        <TableCell sx={{ padding: '8px' }}>
+                          <TextField
+                            value={rows[rowIndex]?.['Conductivity'] || ''}
+                            onChange={(e) => handleChange(e, rowIndex, 'Conductivity')}
+                            InputProps={{ sx: { padding: 0, height: '56px' } }}
+                          />
+                        </TableCell>
+                      </>
                     ) : (
-                      <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                        {col === 'Closing Stock (Kg)' ? (
-                          <TextField
-                            value={rows[rowIndex]?.[col] || ''}
-                            InputProps={{ sx: { padding: 0 }, readOnly: true }}
-                          />
+                      columnLabels.map((col, colIndex) => (
+                        col === 'Signature' ? (
+                          <TableCell sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
+                            <div
+                              onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
+                              style={{ cursor: 'pointer', border: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                            >
+                              {rows[rowIndex]?.['Signature'] ? (
+                                <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                              ) : (
+                                'Sign'
+                              )}
+                            </div>
+                          </TableCell>
                         ) : (
+                          <TableCell key={colIndex} sx={{ padding: '8px' }}>
+                            {col === 'Closing Stock (Kg)' ? (
+                              <TextField
+                                value={rows[rowIndex]?.[col] || ''}
+                                InputProps={{ sx: { padding: 0, height: '56px' }, readOnly: true }}
+                              />
+                            ) : (
+                              <TextField
+                                value={rows[rowIndex]?.[col] || ''}
+                                onChange={(e) => handleChange(e, rowIndex, col)}
+                                InputProps={{ sx: { padding: 0, height: '56px' } }}
+                              />
+                            )}
+                          </TableCell>
+                        )
+                      ))
+                    )}
+                  </TableRow>
+                  {collectionName === 'chilledWater' && (
+                    <>
+                      <TableRow>
+                        <TableCell sx={{ padding: '8px' }}>Name</TableCell>
+                        <TableCell sx={{ padding: '8px' }}>
                           <TextField
-                            value={rows[rowIndex]?.[col] || ''}
-                            onChange={(e) => handleChange(e, rowIndex, col)}
-                            InputProps={{ sx: { padding: 0 } }}
+                            fullWidth
+                            placeholder="Name"
+                            value={rows[rowIndex]?.['Name'] || ''}
+                            onChange={(e) => handleChange(e, rowIndex, 'Name')}
+                            InputProps={{ sx: { height: '56px' } }}
                           />
-                        )}
-                      </TableCell>
-                    )
-                  ))}
-                </TableRow>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ padding: '8px' }}>Signature</TableCell>
+                        <TableCell sx={{ padding: '8px' }}>
+                          <div
+                            onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
+                            style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                          >
+                            {rows[rowIndex]?.['Signature'] ? (
+                              <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                            ) : (
+                              'Sign'
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                </React.Fragment>
               ))}
-              {collectionName !== 'condenserWater' && collectionName !== 'chilledWater' && (
-                <TableRow>
-                  <TableCell colSpan={columnLabels.length + 1}>
-                    <Typography variant="h6" sx={{ textAlign: 'center' }}>Name and Signature</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
+
               {collectionName !== 'condenserWater' && collectionName !== 'chilledWater' && (
                 <TableRow>
                   <TableCell colSpan={columnLabels.length}>
-                    <TextField
-                      fullWidth
-                      placeholder="Name"
-                      value={rows[rows.length - 1]?.['Name'] || ''}
-                      onChange={(e) => handleChange(e, rows.length - 1, 'Name')}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', height: '56px' }}>
+                      <TextField
+                        fullWidth
+                        placeholder="Name"
+                        value={rows[rows.length - 1]?.['Name'] || ''}
+                        onChange={(e) => handleChange(e, rows.length - 1, 'Name')}
+                        sx={{ height: '100%' }}
+                        InputProps={{ sx: { height: '100%' } }}
+                      />
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <div
                       onClick={() => handleOpenSignatureModal(rows.length - 1, 'Signature')}
-                      style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
                     >
                       {rows[rows.length - 1]?.['Signature'] ? (
                         <img src={rows[rows.length - 1]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
                       ) : (
-                        'Click to Sign'
+                        'Sign'
                       )}
                     </div>
                   </TableCell>
@@ -321,15 +363,20 @@ const Userform = () => {
   const [technicianName, setTechnicianName] = useState('');
   const [notes, setNotes] = useState('');
   const [noteList, setNoteList] = useState([]);
-  useEffect(() => {
-  const fetchNotes = async () => {
-    const notesSnapshot = await getDocs(collection(db, 'notes'));
-    const notesData = notesSnapshot.docs.map(doc => doc.data().notes);
-    setNoteList(notesData.flat()); // Flatten the array if notes is an array of arrays
-  };
+  const [noteName, setNoteName] = useState('');
+  const [noteSignature, setNoteSignature] = useState('');
+  const [openSignatureModal, setOpenSignatureModal] = useState(false);
+  const sigPadRef = useRef(null);
 
-  fetchNotes();
-}, []);
+  useEffect(() => {
+    const fetchNotes = async () => {
+      const notesSnapshot = await getDocs(collection(db, 'notes'));
+      const notesData = notesSnapshot.docs.map(doc => doc.data().notes);
+      setNoteList(notesData.flat()); // Flatten the array if notes is an array of arrays
+    };
+
+    fetchNotes();
+  }, []);
 
   const [noteInput, setNoteInput] = useState('');
   const [condenserWaterData, setCondenserWaterData] = useState([]);
@@ -424,15 +471,24 @@ const Userform = () => {
     }
   };
 
+  const handleOpenSignatureModal = () => {
+    setOpenSignatureModal(true);
+  };
+
+  const handleSign = async () => {
+    const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
+    setNoteSignature(signatureDataUrl);
+    setOpenSignatureModal(false);
+  };
+
   const condenserWaterLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const condenserWaterColumns = ['Makeup Conductivity', 'Condenser Conductivity', 'Free Chlorine', 'Action', 'Name', 'Signature'];
 
   const chilledWaterLabels = [new Date().toLocaleDateString()];
-  const chilledWaterColumns = ['Conductivity', 'Action', 'Name', 'Signature'];
+  const chilledWaterColumns = ['Conductivity', 'Action'];
   const chilledWaterDefaultRow = {
     Day: new Date().toLocaleDateString(),
     Conductivity: '',
-    Action: '',
     Name: '',
     Signature: ''
   };
@@ -463,64 +519,39 @@ const Userform = () => {
     'Product Name': label,
     'Available empty Jerry Cans in plants (06-11-2022)': ''
   }));
-// Add the state for rows in the Userform component
-const [rows, setRows] = useState([{ Name: '', Signature: '' }]);
 
-// Define the handleChange function
-const handleChange = (e, rowIndex, columnKey) => {
-  const newRows = [...rows];
-  if (!newRows[rowIndex]) {
-    newRows[rowIndex] = {};
-  }
-  newRows[rowIndex][columnKey] = e.target.value;
-  setRows(newRows);
-};
-// Add these state definitions at the beginning of the Userform component
-const [currentRow, setCurrentRow] = useState(null);
-const [currentColumn, setCurrentColumn] = useState(null);
-const [openSignatureModal, setOpenSignatureModal] = useState(false);
-
-// Define the handleOpenSignatureModal function
-const handleOpenSignatureModal = (rowIndex, columnKey) => {
-  setCurrentRow(rowIndex);
-  setCurrentColumn(columnKey);
-  setOpenSignatureModal(true);
-};
   return (
     <ThemeProvider theme={theme}>
       <Container component={Paper} sx={{ p: 3, mt: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-      <img src={require('./logo.png')} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
-      <Typography variant={isMobile ? 'h6' : 'h5'} component="h1">
-        Water Treatment Weekly Report
-      </Typography>
-      <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} component="h2">
-        Week Commencing Sunday : 28th July 2024 to 3rd August 2024
-      </Typography>
-      <Chip label="Plant Name: AD-002" color="primary" size="small" sx={{ mt: 0.5 }} />
-      <Box sx={{ mt: 1 }}>
-        <Grid container spacing={1} alignItems="center">
-          <Grid item xs={12} sm={4}>
-            <Typography variant="subtitle2">Operations Department: TOM-OPS-FM-2009</Typography>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography variant="subtitle2">Revision 03 Dated: 25/10/2021</Typography>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography variant="subtitle2">Replaces Revision 02 of: 19/03/2005</Typography>
-          </Grid>
-        </Grid>
-      </Box>
-    </Box>
+          <img src={require('./logo.png')} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
+          <Typography variant={isMobile ? 'h6' : 'h5'} component="h1">
+            Water Treatment Weekly Report
+          </Typography>
+          <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} component="h2">
+            Week Commencing Sunday : 28th July 2024 to 3rd August 2024
+          </Typography>
+          <Chip label="Plant Name: AD-002" color="primary" size="small" sx={{ mt: 0.5 }} />
+          <Box sx={{ mt: 1 }}>
+            <Grid container spacing={1} alignItems="center">
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2">Operations Department: TOM-OPS-FM-2009</Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2">Revision 03 Dated: 25/10/2021</Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2">Replaces Revision 02 of: 19/03/2005</Typography>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
         <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3 }}>
-          {/* <Button variant="contained" color="secondary" onClick={handleClearAllData} sx={{ mr: 2 }}>
-            Clear All Data
-          </Button> */}
           <Button variant="contained" color="primary" onClick={handleSaveAllData}>
             Submit report
           </Button>
         </Box>
-        
+
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabIndex} onChange={handleTabChange} centered>
             <Tab label="Condenser Water" />
@@ -566,37 +597,96 @@ const handleOpenSignatureModal = (rowIndex, columnKey) => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
-  <Box sx={{ mt: 2 }}>
-    <Typography variant="h6">Notes</Typography>
-    <List>
-      {noteList.map((note, index) => (
-        <ListItem key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <ListItemText primary={note} />
-          <IconButton edge="end" onClick={() => handleDeleteNote(index)}>
-            <DeleteIcon />
-          </IconButton>
-        </ListItem>
-      ))}
-      <ListItem>
-        <TextField
-          fullWidth
-          variant="outlined"
-          value={noteInput}
-          onChange={(e) => setNoteInput(e.target.value)}
-          placeholder="Add a note"
-        />
-        <IconButton color="primary" onClick={handleAddNote}>
-          <AddIcon />
-        </IconButton>
-      </ListItem>
-    </List>
-    <Button variant="contained" color="primary" onClick={handleSaveNotes} sx={{ mt: 2 }}>
-      Save Notes
-    </Button>
-  </Box>
-</TabPanel>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6">Notes</Typography>
+            <List>
+              {noteList.map((note, index) => (
+                <ListItem key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <ListItemText primary={note} />
+                  <IconButton edge="end" onClick={() => handleDeleteNote(index)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItem>
+              ))}
+              <ListItem>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  placeholder="Add a note"
+                />
+                <IconButton color="primary" onClick={handleAddNote}>
+                  <AddIcon />
+                </IconButton>
+              </ListItem>
 
+              <ListItem>
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                  <TextField
+                    fullWidth
+                    placeholder="Name"
+                    value={noteName}
+                    onChange={(e) => setNoteName(e.target.value)}
+                    sx={{ mr: 2 }}
+                  />
+                  <div
+                    onClick={handleOpenSignatureModal}
+                    style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '56px' }}
+                  >
+                    {noteSignature ? (
+                      <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                    ) : (
+                      'Sign'
+                    )}
+                  </div>
+                </Box>
+              </ListItem>
+
+            </List>
+            <Button variant="contained" color="primary" onClick={handleSaveNotes} sx={{ mt: 2 }}>
+              Save Notes
+            </Button>
+          </Box>
+        </TabPanel>
       </Container>
+      <Modal
+        open={openSignatureModal}
+        onClose={() => setOpenSignatureModal(false)}
+        aria-labelledby="signature-modal-title"
+        aria-describedby="signature-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: 600,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography id="signature-modal-title" variant="h6" component="h2" gutterBottom>
+            Signature
+          </Typography>
+          <Box sx={{ width: '100%', height: 200, border: '1px solid #000' }}>
+            <SignaturePad ref={sigPadRef} canvasProps={{ style: { width: '100%', height: '100%' } }} />
+          </Box>
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <Button variant="contained" color="primary" onClick={handleSign}>
+              Sign
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </ThemeProvider>
   );
 };

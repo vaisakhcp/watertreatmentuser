@@ -156,7 +156,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
           style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
         >
           {rows[rowIndex]?.['Signature'] ? (
-            <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+            <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
           ) : (
             'Click to Sign'
           )}
@@ -177,7 +177,9 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Product Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                  {collectionName === 'chilledWater' ? 'Date' : 'Product Name'} {/* Conditional label */}
+                </TableCell>
                 {columnLabels.map((col, index) =>
                   col !== 'Signature' ? (
                     <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>{col}</TableCell>
@@ -319,6 +321,16 @@ const Userform = () => {
   const [technicianName, setTechnicianName] = useState('');
   const [notes, setNotes] = useState('');
   const [noteList, setNoteList] = useState([]);
+  useEffect(() => {
+  const fetchNotes = async () => {
+    const notesSnapshot = await getDocs(collection(db, 'notes'));
+    const notesData = notesSnapshot.docs.map(doc => doc.data().notes);
+    setNoteList(notesData.flat()); // Flatten the array if notes is an array of arrays
+  };
+
+  fetchNotes();
+}, []);
+
   const [noteInput, setNoteInput] = useState('');
   const [condenserWaterData, setCondenserWaterData] = useState([]);
   const [chilledWaterData, setChilledWaterData] = useState([]);
@@ -350,6 +362,12 @@ const Userform = () => {
   const handleDeleteNote = (index) => {
     const newList = noteList.filter((_, i) => i !== index);
     setNoteList(newList);
+  };
+
+  const handleSaveNotes = async () => {
+    const notesDoc = doc(db, 'notes', 'notesList');
+    await setDoc(notesDoc, { notes: noteList });
+    alert('Notes saved successfully!');
   };
 
   const handleAdditionalTableChange = (e, index) => {
@@ -572,54 +590,9 @@ const handleOpenSignatureModal = (rowIndex, columnKey) => {
         </IconButton>
       </ListItem>
     </List>
-    <Box sx={{ mt: 4 }}>
-      <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Signature</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell sx={{ padding: '8px' }}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Name"
-                  value={rows[0]?.['Name'] || ''}
-                  onChange={(e) => handleChange(e, 0, 'Name')}
-                  sx={{ '& .MuiInputBase-root': { height: '56px' } }}
-                />
-              </TableCell>
-              <TableCell sx={{ padding: '8px' }}>
-                <div
-                  onClick={() => handleOpenSignatureModal(0, 'Signature')}
-                  style={{
-                    cursor: 'pointer',
-                    border: '1px solid #000',
-                    height: '56px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center', marginTop: -4,
-                    backgroundColor: rows[0]?.['Signature'] ? 'transparent' : '#f0f0f0'
-                  }}
-                >
-                  {rows[0]?.['Signature'] ? (
-                    <img src={rows[0]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                  ) : (
-                    <Typography variant="body2" sx={{ color: '#888' }}>
-                      Click to Sign
-                    </Typography>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+    <Button variant="contained" color="primary" onClick={handleSaveNotes} sx={{ mt: 2 }}>
+      Save Notes
+    </Button>
   </Box>
 </TabPanel>
 

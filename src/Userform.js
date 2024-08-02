@@ -8,7 +8,7 @@ import {
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
-import logo from './logo.png';  // Replace with the actual path to your logo
+import logo from './logo.png';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import AddIcon from '@mui/icons-material/Add';
@@ -153,7 +153,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
         <Typography variant="body2" sx={{ flex: 1 }}>Signature:</Typography>
         <div
           onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-          style={{ cursor: 'pointer', border: '1px solid #000', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
+          style={{ cursor: 'pointer', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
         >
           {rows[rowIndex]?.['Signature'] ? (
             <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
@@ -165,7 +165,6 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
       <Divider />
     </Box>
   );
-
 
   return (
     <>
@@ -193,8 +192,23 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                 <TableRow>
                   <TableCell sx={{ padding: '8px' }}>Blowdown Set-point</TableCell>
                   <TableCell colSpan={columnLabels.length - 1} sx={{ padding: '8px', textAlign: 'center' }}>
-                    Open Level <TextField value={openLevel} onChange={(e) => setOpenLevel(e.target.value)} sx={{ width: '50px', padding: 0, height: '56px' }} InputProps={{ sx: { padding: 0, height: '56px' } }} /> &
-                    Close Level <TextField value={closeLevel} onChange={(e) => setCloseLevel(e.target.value)} sx={{ width: '50px', padding: 0, height: '56px' }} InputProps={{ sx: { padding: 0, height: '56px' } }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      Open Level
+                      <TextField
+                        value={openLevel}
+                        onChange={(e) => setOpenLevel(e.target.value)}
+                        sx={{ width: '50px', padding: 0, height: '56px', mx: 1 }}
+                        InputProps={{ sx: { padding: 0, height: '56px' } }}
+                      />
+                      &
+                      Close Level
+                      <TextField
+                        value={closeLevel}
+                        onChange={(e) => setCloseLevel(e.target.value)}
+                        sx={{ width: '50px', padding: 0, height: '56px', mx: 1 }}
+                        InputProps={{ sx: { padding: 0, height: '56px' } }}
+                      />
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -218,7 +232,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                           <TableCell sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
                             <div
                               onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-                              style={{ cursor: 'pointer', border: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
                             >
                               {rows[rowIndex]?.['Signature'] ? (
                                 <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
@@ -265,10 +279,10 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                         <TableCell sx={{ padding: '8px' }}>
                           <div
                             onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-                            style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                            style={{ cursor: 'pointer', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
                           >
                             {rows[rowIndex]?.['Signature'] ? (
-                              <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                              <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
                             ) : (
                               'Sign'
                             )}
@@ -297,7 +311,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                   <TableCell>
                     <div
                       onClick={() => handleOpenSignatureModal(rows.length - 1, 'Signature')}
-                      style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
+                      style={{ cursor: 'pointer', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', border: 'none' }}
                     >
                       {rows[rows.length - 1]?.['Signature'] ? (
                         <img src={rows[rows.length - 1]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
@@ -330,7 +344,6 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
             width: '90%',
             maxWidth: 600,
             bgcolor: 'background.paper',
-            border: '2px solid #000',
             boxShadow: 24,
             p: 4,
             display: 'flex',
@@ -384,14 +397,14 @@ const Userform = () => {
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [additionalTableData, setAdditionalTableData] = useState([
-    { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '10²', color: 'blue' },
-    { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '10²', color: 'blue' },
-    { label: 'Condenser system Make-up (m³ / USG)', value: '5243', color: 'red' },
-    { label: 'Condenser system Blowdown (m³ / USG)', value: '950', color: 'red' },
-    { label: 'Chilled water system Make-up (m³ / USG)', value: '0.62', color: 'red' },
-    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '8.0', color: 'blue' },
-    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '5.5', color: 'blue' },
-    { label: 'MIOX Running Hours (Hr.)', value: '344.0 hrs.', color: 'black' },
+    { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
+    { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
+    { label: 'Condenser system Make-up (m³ / USG)', value: '', color: 'red' },
+    { label: 'Condenser system Blowdown (m³ / USG)', value: '', color: 'red' },
+    { label: 'Chilled water system Make-up (m³ / USG)', value: '', color: 'red' },
+    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '', color: 'blue' },
+    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '', color: 'blue' },
+    { label: 'MIOX Running Hours (Hr.)', value: '', color: 'black' },
   ]);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -595,6 +608,38 @@ const Userform = () => {
             defaultRows={coolingTowerChemicalsDefaultRows}
             updateData={updateData}
           />
+          <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
+            <Table>
+              <TableBody>
+                {additionalTableData.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{item.label}</TableCell>
+                    <TableCell>
+                      {index < 2 ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1">10<sup></sup></Typography> {/* Superscript using <sup> tag */}
+                          <TextField
+                            value={item.value}
+                            onChange={(e) => handleAdditionalTableChange(e, index)}
+                            sx={{ width: '56px', ml: 1 }} // Adjust width as needed
+                            InputProps={{
+                              inputProps: { style: { textAlign: 'center' } }
+                            }}
+                          />
+                        </Box>
+                      ) : (
+                        <TextField
+                          value={item.value}
+                          onChange={(e) => handleAdditionalTableChange(e, index)}
+                          fullWidth
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
           <Box sx={{ mt: 2 }}>
@@ -632,7 +677,7 @@ const Userform = () => {
                   />
                   <div
                     onClick={handleOpenSignatureModal}
-                    style={{ cursor: 'pointer', border: '1px solid #000', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '56px' }}
+                    style={{ cursor: 'pointer', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '56px' }}
                   >
                     {noteSignature ? (
                       <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />

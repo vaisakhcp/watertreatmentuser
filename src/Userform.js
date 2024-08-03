@@ -3,8 +3,9 @@ import {
   Container, Box, Tabs, Tab, Paper, TextField, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   createTheme, ThemeProvider, Modal, Typography, Grid, useMediaQuery,
-  List, ListItem, ListItemText, IconButton, Divider, Chip
+  List, ListItem, ListItemText, IconButton, Divider, Chip, Fab
 } from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
@@ -51,6 +52,57 @@ const theme = createTheme({
         },
       },
     },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: '8px',
+          fontSize: '14px',
+        },
+        head: {
+          fontWeight: 'bold',
+        },
+      },
+    },
+    MuiTypography: {
+      styleOverrides: {
+        subtitle1: {
+          fontWeight: 'bold',
+          color: '#666',
+        },
+        subtitle2: {
+          fontWeight: 'bold',
+          color: '#999',
+        },
+      },
+    },
+  },
+});
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: { main: '#1976d2' },
+    background: { default: '#424242', paper: '#333' },
+  },
+  typography: {
+    fontFamily: 'Poppins, sans-serif',
+    h5: { fontSize: '1.5rem' },
+    h6: { fontSize: '1.2rem' },
+    body1: { fontSize: '0.9rem' },
+    body2: { fontSize: '0.8rem' },
+  },
+  components: {
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: '8px',
+          fontSize: '14px',
+        },
+        head: {
+          fontWeight: 'bold',
+        },
+      },
+    },
   },
 });
 
@@ -66,20 +118,19 @@ const TabPanel = ({ children, value, index }) => {
   );
 };
 
-const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, updateData }) => {
+const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, updateData, calculateClosingStock }) => {
   const [rows, setRows] = useState(defaultRows || []);
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const [currentRow, setCurrentRow] = useState(null);
   const [currentColumn, setCurrentColumn] = useState(null);
   const sigPadRef = useRef(null);
-  const [openLevel, setOpenLevel] = useState("8.2");
-  const [closeLevel, setCloseLevel] = useState("7.8");
   const isMobile = useMediaQuery('(max-width:600px)');
 
   useEffect(() => {
     const fetchData = async () => {
       const querySnapshot = await getDocs(collection(db, collectionName));
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`Fetched data for ${collectionName}:`, data);
       if (!defaultRows) setRows(data);
     };
     fetchData();
@@ -95,20 +146,12 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
       newRows[rowIndex] = {};
     }
     newRows[rowIndex][columnKey] = e.target.value;
-    if (columnKey === 'Consumption (Kg)') {
-      const openingStock = parseFloat(newRows[rowIndex]['Opening Stock (Kg)']) || 0;
-      const consumption = parseFloat(e.target.value) || 0;
-      newRows[rowIndex]['Closing Stock (Kg)'] = (openingStock - consumption).toFixed(2);
+    if (calculateClosingStock && columnKey !== 'Closing Stock (Kg)') {
+      const openingStock = parseFloat(newRows[rowIndex]['Opening Stock (Kg)'] || 0);
+      const consumption = parseFloat(newRows[rowIndex]['Consumption (Kg)'] || 0);
+      newRows[rowIndex]['Closing Stock (Kg)'] = openingStock - consumption;
     }
     setRows(newRows);
-  };
-
-  const handleSave = async () => {
-    for (const row of rows) {
-      const rowDoc = doc(db, collectionName, row.id || rowLabels[rows.indexOf(row)]);
-      await setDoc(rowDoc, row);
-    }
-    alert('Data saved successfully!');
   };
 
   const handleOpenSignatureModal = (rowIndex, columnKey) => {
@@ -127,208 +170,103 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
     setRows(newRows);
 
     const rowDoc = doc(db, collectionName, newRows[currentRow].id || rowLabels[currentRow]);
+    console.log(`Saving signature document in ${collectionName} collection:`, newRows[currentRow]);
     await setDoc(rowDoc, newRows[currentRow]);
 
     setOpenSignatureModal(false);
   };
 
-  const renderRowAsList = (rowLabel, rowIndex) => (
-    <Box key={rowIndex} sx={{ mb: 2 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>{rowLabel}</Typography>
-      {columnLabels.map((col, colIndex) => (
-        col !== 'Signature' && (
-          <Box key={colIndex} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="body2" sx={{ flex: 1 }}>{col}:</Typography>
-            <TextField
-              value={rows[rowIndex]?.[col] || ''}
-              onChange={(e) => handleChange(e, rowIndex, col)}
-              InputProps={{ sx: { padding: 0, height: '56px' } }}
-              sx={{ flex: 2 }}
-              variant="standard"
-            />
-          </Box>
-        )
-      ))}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="body2" sx={{ flex: 1 }}>Signature:</Typography>
-        <div
-          onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-          style={{ cursor: 'pointer', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
-        >
-          {rows[rowIndex]?.['Signature'] ? (
-            <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-          ) : (
-            'Sign'
-          )}
-        </div>
-      </Box>
-      <Divider />
-    </Box>
-  );
-
   return (
     <>
       {isMobile ? (
         <List>
-          {rowLabels.map((rowLabel, rowIndex) => renderRowAsList(rowLabel, rowIndex))}
+          {rowLabels.map((rowLabel, rowIndex) => (
+            <Box key={rowIndex} sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>{rowLabel}</Typography>
+              {columnLabels.map((col, colIndex) => (
+                col !== 'Signature' && (
+                  <Box key={colIndex} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" sx={{ flex: 1 }}>{col}:</Typography>
+                    <TextField
+                      value={rows[rowIndex]?.[col] || ''}
+                      onChange={(e) => handleChange(e, rowIndex, col)}
+                      InputProps={{ sx: { padding: 0, height: '56px' } }}
+                      sx={{ flex: 2 }}
+                      variant="standard"
+                      disabled={col === 'Closing Stock (Kg)'}
+                    />
+                  </Box>
+                )
+              ))}
+              {columnLabels.includes('Signature') && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" sx={{ flex: 1 }}>Signature:</Typography>
+                  <div
+                    onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
+                    style={{ cursor: 'pointer', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
+                  >
+                    {rows[rowIndex]?.['Signature'] ? (
+                      <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                    ) : (
+                      'Sign'
+                    )}
+                  </div>
+                </Box>
+              )}
+              <Divider />
+            </Box>
+          ))}
         </List>
       ) : (
         <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
-          <Table sx={{ minWidth: 650 }}>
+          <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                  {collectionName === 'chilledWater' ? 'Date' : 'Product Name'} {/* Conditional label */}
-                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Date</TableCell>
                 {columnLabels.map((col, index) => (
-                  <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                  <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {col}
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {collectionName === 'condenserWater' && (
-                <TableRow>
-                  <TableCell sx={{ padding: '8px' }}>Blowdown Set-point</TableCell>
-                  <TableCell colSpan={columnLabels.length - 1} sx={{ padding: '8px', textAlign: 'center' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      Open Level
-                      <TextField
-                        value={openLevel}
-                        onChange={(e) => setOpenLevel(e.target.value)}
-                        sx={{ width: '50px', padding: 0, height: '56px', mx: 1 }}
-                        InputProps={{ sx: { padding: 0, height: '56px' } }}
-                      />
-                      &
-                      Close Level
-                      <TextField
-                        value={closeLevel}
-                        onChange={(e) => setCloseLevel(e.target.value)}
-                        sx={{ width: '50px', padding: 0, height: '56px', mx: 1 }}
-                        InputProps={{ sx: { padding: 0, height: '56px' } }}
-                      />
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              )}
               {rowLabels.map((rowLabel, rowIndex) => (
                 <React.Fragment key={rowIndex}>
                   <TableRow>
                     <TableCell sx={{ padding: '8px' }}>{rowLabel}</TableCell>
-                    {collectionName === 'chilledWater' ? (
-                      <>
-                        <TableCell sx={{ padding: '8px' }}>
-                          <TextField
-                            value={rows[rowIndex]?.['Conductivity'] || ''}
-                            onChange={(e) => handleChange(e, rowIndex, 'Conductivity')}
-                            InputProps={{ sx: { padding: 0, height: '56px' } }}
-                          />
-                        </TableCell>
-                      </>
-                    ) : (
-                      columnLabels.map((col, colIndex) => (
-                        col === 'Signature' ? (
-                          <TableCell sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
-                            <div
-                              onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-                              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
-                            >
-                              {rows[rowIndex]?.['Signature'] ? (
-                                <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                              ) : (
-                                'Sign'
-                              )}
-                            </div>
-                          </TableCell>
-                        ) : (
-                          <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                            {col === 'Closing Stock (Kg)' ? (
-                              <TextField
-                                value={rows[rowIndex]?.[col] || ''}
-                                InputProps={{ sx: { padding: 0, height: '56px' }, readOnly: true }}
-                              />
-                            ) : (
-                              <TextField
-                                value={rows[rowIndex]?.[col] || ''}
-                                onChange={(e) => handleChange(e, rowIndex, col)}
-                                InputProps={{ sx: { padding: 0, height: '56px' } }}
-                              />
-                            )}
-                          </TableCell>
-                        )
-                      ))
-                    )}
-                  </TableRow>
-                  {collectionName === 'chilledWater' && (
-                    <>
-                      <TableRow>
-                        <TableCell sx={{ padding: '8px' }}>Name</TableCell>
-                        <TableCell sx={{ padding: '8px' }}>
-                          <TextField
-                            fullWidth
-                            placeholder="Name"
-                            value={rows[rowIndex]?.['Name'] || ''}
-                            onChange={(e) => handleChange(e, rowIndex, 'Name')}
-                            InputProps={{ sx: { height: '56px' } }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ padding: '8px' }}>Signature</TableCell>
-                        <TableCell sx={{ padding: '8px' }}>
+                    {columnLabels.map((col, colIndex) => (
+                      col === 'Signature' ? (
+                        <TableCell key={colIndex} sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
                           <div
                             onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-                            style={{ cursor: 'pointer', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
                           >
                             {rows[rowIndex]?.['Signature'] ? (
-                              <img src={rows[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                              <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
                             ) : (
                               'Sign'
                             )}
                           </div>
                         </TableCell>
-                      </TableRow>
-                    </>
-                  )}
+                      ) : (
+                        <TableCell key={colIndex} sx={{ padding: '8px' }}>
+                          <TextField
+                            value={rows[rowIndex]?.[col] || ''}
+                            onChange={(e) => handleChange(e, rowIndex, col)}
+                            InputProps={{ sx: { padding: 0, height: '56px' } }}
+                            disabled={col === 'Closing Stock (Kg)'}
+                          />
+                        </TableCell>
+                      )
+                    ))}
+                  </TableRow>
                 </React.Fragment>
               ))}
-
-              {collectionName !== 'condenserWater' && collectionName !== 'chilledWater' && (
-                <TableRow>
-                  <TableCell colSpan={columnLabels.length}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', height: '56px' }}>
-                      <TextField
-                        fullWidth
-                        placeholder="Name"
-                        value={rows[rows.length - 1]?.['Name'] || ''}
-                        onChange={(e) => handleChange(e, rows.length - 1, 'Name')}
-                        sx={{ height: '100%' }}
-                        InputProps={{ sx: { height: '100%' } }}
-                      />
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      onClick={() => handleOpenSignatureModal(rows.length - 1, 'Signature')}
-                      style={{ cursor: 'pointer', minHeight: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', border: 'none' }}
-                    >
-                      {rows[rows.length - 1]?.['Signature'] ? (
-                        <img src={rows[rows.length - 1]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                      ) : (
-                        'Sign'
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </TableContainer>
       )}
-      <Button variant="contained" color="primary" onClick={handleSave} sx={{ mt: 2 }}>
-        Save
-      </Button>
       <Modal
         open={openSignatureModal}
         onClose={() => setOpenSignatureModal(false)}
@@ -393,7 +331,7 @@ const Userform = () => {
 
   const [noteInput, setNoteInput] = useState('');
   const [condenserWaterData, setCondenserWaterData] = useState([]);
-  const [chilledWaterData, setChilledWaterData] = useState([]);
+  const [chilledWaterData, setChilledWaterData] = useState({});
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [additionalTableData, setAdditionalTableData] = useState([
@@ -425,7 +363,8 @@ const Userform = () => {
   };
 
   const handleSaveNotes = async () => {
-    const notesDoc = doc(db, 'notes', 'notesList');
+    const notesDoc = doc(db, 'notes', 'noteList');
+    console.log('notess',noteList)
     await setDoc(notesDoc, { notes: noteList });
     alert('Notes saved successfully!');
   };
@@ -454,8 +393,12 @@ const Userform = () => {
     switch (collectionName) {
       case 'condenserWater':
         setCondenserWaterData(data);
+        console.log('condenserWater', data);
+
         break;
       case 'chilledWater':
+        console.log('data', data);
+
         setChilledWaterData(data);
         break;
       case 'condenserChemicals':
@@ -471,15 +414,20 @@ const Userform = () => {
 
   const handleSaveAllData = async () => {
     await handleSaveData('condenserWater', condenserWaterData, condenserWaterLabels);
-    await handleSaveData('chilledWater', chilledWaterData, chilledWaterLabels);
+    await handleSaveData('chilledWater', [chilledWaterData], chilledWaterLabels); // Pass as array
     await handleSaveData('condenserChemicals', condenserChemicalsData, condenserChemicalsLabels);
     await handleSaveData('coolingTowerChemicals', coolingTowerChemicalsData, coolingTowerChemicalsLabels);
     await handleSaveAdditionalTable();
+    await handleSaveNotes();
   };
-
+  
   const handleSaveData = async (collectionName, data, rowLabels) => {
+    if (!Array.isArray(data)) {
+      data = [data]; // Convert to an array if it is not
+    }
     for (const row of data) {
       const rowDoc = doc(db, collectionName, row.id || rowLabels[data.indexOf(row)]);
+      console.log(`Saving document in ${collectionName} collection:`, row);
       await setDoc(rowDoc, row);
     }
   };
@@ -499,28 +447,27 @@ const Userform = () => {
 
   const chilledWaterLabels = [new Date().toLocaleDateString()];
   const chilledWaterColumns = ['Conductivity', 'Action'];
-  const chilledWaterDefaultRow = {
-    Day: new Date().toLocaleDateString(),
-    Conductivity: '',
-    Name: '',
-    Signature: ''
-  };
-
+  const chilledWaterDefaultRow = [{
+    'Day': new Date().toLocaleDateString(),
+    'Conductivity': '',
+    'Name': '',
+    'Signature': ''
+  }]
   const condenserChemicalsLabels = [
     'PM3601 (25Kg)', 'Biocide AQ', 'PF CC6202 (20Kg)', 'PDV Salt (25Kg)', 'Sodium Hypochlorite (25 kg)',
     'BD 250C (25Kg)', 'PF CL4015 (CHW)', 'BD 350 (30Kg)', 'Dip slide (pcs)'
   ];
-  const condenserChemicalsColumns = ['Opening Stock (Kg)', 'Closing Stock (Kg)', 'Consumption (Kg)'];
+  const condenserChemicalsColumns = ['Opening Stock (Kg)', 'Consumption (Kg)', 'Closing Stock (Kg)'];
   const condenserChemicalsDefaultRows = [
-    { 'Product Name': 'PM3601 (25Kg)', 'Opening Stock (Kg)': 100, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'Biocide AQ', 'Opening Stock (Kg)': 200, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'PF CC6202 (20Kg)', 'Opening Stock (Kg)': 150, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'PDV Salt (25Kg)', 'Opening Stock (Kg)': 300, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'Sodium Hypochlorite (25 kg)', 'Opening Stock (Kg)': 250, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'BD 250C (25Kg)', 'Opening Stock (Kg)': 180, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'PF CL4015 (CHW)', 'Opening Stock (Kg)': 120, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'BD 350 (30Kg)', 'Opening Stock (Kg)': 90, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' },
-    { 'Product Name': 'Dip slide (pcs)', 'Opening Stock (Kg)': 60, 'Consumption (Kg)': '', 'Closing Stock (Kg)': '' }
+    { 'Product Name': 'PM3601 (25Kg)', 'Opening Stock (Kg)': 100, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 100 },
+    { 'Product Name': 'Biocide AQ', 'Opening Stock (Kg)': 200, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 200 },
+    { 'Product Name': 'PF CC6202 (20Kg)', 'Opening Stock (Kg)': 150, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 150 },
+    { 'Product Name': 'PDV Salt (25Kg)', 'Opening Stock (Kg)': 300, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 300 },
+    { 'Product Name': 'Sodium Hypochlorite (25 kg)', 'Opening Stock (Kg)': 250, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 250 },
+    { 'Product Name': 'BD 250C (25Kg)', 'Opening Stock (Kg)': 180, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 180 },
+    { 'Product Name': 'PF CL4015 (CHW)', 'Opening Stock (Kg)': 120, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 120 },
+    { 'Product Name': 'BD 350 (30Kg)', 'Opening Stock (Kg)': 90, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 90 },
+    { 'Product Name': 'Dip slide (pcs)', 'Opening Stock (Kg)': 60, 'Consumption (Kg)': '', 'Closing Stock (Kg)': 60 }
   ];
 
   const coolingTowerChemicalsLabels = [
@@ -532,6 +479,79 @@ const Userform = () => {
     'Product Name': label,
     'Available empty Jerry Cans in plants (06-11-2022)': ''
   }));
+
+  const ChilledWaterForm = ({ chilledWaterData, setChilledWaterData, handleSave }) => {
+    const [data, setData] = useState(chilledWaterData);
+    const sigPadRef = useRef(null);
+    const [openSignatureModal, setOpenSignatureModal] = useState(false);
+  
+    const handleChange = (e, field) => {
+      setData({ ...data, [field]: e.target.value });
+    };
+  
+    const handleOpenSignatureModal = () => {
+      setOpenSignatureModal(true);
+    };
+  
+    const handleSign = () => {
+      const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
+      setData({ ...data, Signature: signatureDataUrl });
+      setOpenSignatureModal(false);
+    };
+  
+    return (
+      <Box>
+        <TextField
+          label="Day"
+          value={data.Day || ''}
+          onChange={(e) => handleChange(e, 'Day')}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          label="Conductivity"
+          value={data.Conductivity || ''}
+          onChange={(e) => handleChange(e, 'Conductivity')}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          label="Action"
+          value={data.Action || ''}
+          onChange={(e) => handleChange(e, 'Action')}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
+          <TextField
+            label="Name"
+            value={data.Name || ''}
+            onChange={(e) => handleChange(e, 'Name')}
+            sx={{ flex: 1 }}
+          />
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              border: '1px solid lightgrey',
+              cursor: 'pointer',
+              height: '50px',
+              marginTop: -2
+            }}
+            onClick={handleOpenSignatureModal}
+          >
+            {data.Signature ? (
+              <img src={data.Signature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+            ) : (
+              'Sign'
+            )}
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -566,7 +586,7 @@ const Userform = () => {
         </Box>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabIndex} onChange={handleTabChange} centered>
+          <Tabs value={tabIndex} onChange={handleTabChange} centered variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
             <Tab label="Condenser Water" />
             <Tab label="Chilled Water" />
             <Tab label="Condenser Chemicals" />
@@ -583,12 +603,9 @@ const Userform = () => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
-          <TableComponent
-            collectionName="chilledWater"
-            rowLabels={chilledWaterLabels}
-            columnLabels={chilledWaterColumns}
-            defaultRows={[chilledWaterDefaultRow]}
-            updateData={updateData}
+          <ChilledWaterForm
+            chilledWaterData={chilledWaterData}
+            setChilledWaterData={setChilledWaterData}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
@@ -598,7 +615,34 @@ const Userform = () => {
             columnLabels={condenserChemicalsColumns}
             defaultRows={condenserChemicalsDefaultRows}
             updateData={updateData}
+            calculateClosingStock
           />
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
+            <TextField
+              label="Name"
+              value={technicianName}
+              onChange={(e) => setTechnicianName(e.target.value)}
+              sx={{ flex: 1 }}
+            />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                border: '1px solid lightgrey',
+                cursor: 'pointer',
+                height: '50px',
+              }}
+              onClick={handleOpenSignatureModal}
+            >
+              {noteSignature ? (
+                <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+              ) : (
+                'Sign'
+              )}
+            </Box>
+          </Box>
         </TabPanel>
         <TabPanel value={tabIndex} index={3}>
           <TableComponent
@@ -665,36 +709,48 @@ const Userform = () => {
                   <AddIcon />
                 </IconButton>
               </ListItem>
-
-              <ListItem>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <TextField
-                    fullWidth
-                    placeholder="Name"
-                    value={noteName}
-                    onChange={(e) => setNoteName(e.target.value)}
-                    sx={{ mr: 2 }}
-                  />
-                  <div
-                    onClick={handleOpenSignatureModal}
-                    style={{ cursor: 'pointer', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '56px' }}
-                  >
-                    {noteSignature ? (
-                      <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                    ) : (
-                      'Sign'
-                    )}
-                  </div>
-                </Box>
-              </ListItem>
-
             </List>
-            <Button variant="contained" color="primary" onClick={handleSaveNotes} sx={{ mt: 2 }}>
-              Save Notes
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
+              <TextField
+                label="Name"
+                value={noteName}
+                onChange={(e) => setNoteName(e.target.value)}
+                sx={{ flex: 1 }}
+              />
+              <Box
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  border: '1px solid lightgrey',
+                  cursor: 'pointer',
+                  height: '50px',
+                }}
+                onClick={handleOpenSignatureModal}
+              >
+                {noteSignature ? (
+                  <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                ) : (
+                  'Sign'
+                )}
+              </Box>
+            </Box>
           </Box>
         </TabPanel>
       </Container>
+      <Fab
+        color="primary"
+        aria-label="save"
+        onClick={handleSaveAllData}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+        }}
+      >
+        <SaveIcon />
+      </Fab>
       <Modal
         open={openSignatureModal}
         onClose={() => setOpenSignatureModal(false)}

@@ -62,3 +62,15 @@ body,
 html {
   font-family: 'Poppins', sans-serif !important;
 }
+/* Add this to your CSS file or a <style> tag */
+.table-container {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.sticky-header th {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}

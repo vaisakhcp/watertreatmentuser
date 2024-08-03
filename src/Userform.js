@@ -364,7 +364,6 @@ const Userform = () => {
 
   const handleSaveNotes = async () => {
     const notesDoc = doc(db, 'notes', 'noteList');
-    console.log('notess',noteList)
     await setDoc(notesDoc, { notes: noteList });
     alert('Notes saved successfully!');
   };
@@ -422,6 +421,7 @@ const Userform = () => {
   };
   
   const handleSaveData = async (collectionName, data, rowLabels) => {
+    console.log('dasdasda'+ collectionName,data)
     if (!Array.isArray(data)) {
       data = [data]; // Convert to an array if it is not
     }
@@ -487,6 +487,7 @@ const Userform = () => {
   
     const handleChange = (e, field) => {
       setData({ ...data, [field]: e.target.value });
+      setChilledWaterData({ ...chilledWaterData, [field]: e.target.value });
     };
   
     const handleOpenSignatureModal = () => {

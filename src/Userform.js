@@ -455,7 +455,7 @@ const Userform = () => {
   };
 
   const handleSaveAllData = async () => {
-    const plantName = "AD-001"; // Plant name
+    const plantName = "AD-008"; // Plant name
   
     await handleSaveData('condenserWater', condenserWaterData, condenserWaterLabels, plantName);
     await handleSaveData('chilledWater', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
@@ -666,7 +666,7 @@ const Userform = () => {
             <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} component="h2">
               Week Commencing Sunday: {format(weekStartDate, 'dd MMMM yyyy')} to Saturday: {format(weekEndDate, 'dd MMMM yyyy')}
             </Typography>
-            <Chip label="Plant Name: AD-001" color="primary" size="small" sx={{ mt: 0.5 }} />
+            <Chip label="Plant Name: AD-008" color="primary" size="small" sx={{ mt: 0.5 }} />
             <Box sx={{ mt: 1 }}>
               <Grid container spacing={1} alignItems="center">
                 <Grid item xs={12} sm={4}>
@@ -680,7 +680,7 @@ const Userform = () => {
                 </Grid>
               </Grid>
             </Box>
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 2 }} >
               <DatePicker
                 label="Select Start Date"
                 value={weekStartDate}
@@ -720,6 +720,7 @@ const Userform = () => {
               columnLabels={condenserWaterColumns}
               updateData={updateData}
             />
+            
           </TabPanel>
           <TabPanel value={tabIndex} index={1}>
             <ChilledWaterForm chilledWaterData={chilledWaterData} setChilledWaterData={setChilledWaterData} />
@@ -800,6 +801,32 @@ const Userform = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
+    <TextField
+      label="Name"
+      value={technicianName}
+      onChange={(e) => setTechnicianName(e.target.value)}
+      sx={{ flex: 1 }}
+    />
+    <Box
+      sx={{
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        border: '1px solid lightgrey',
+        cursor: 'pointer',
+        height: '50px',
+      }}
+      onClick={handleOpenSignatureModal}
+    >
+      {noteSignature ? (
+        <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+      ) : (
+        'Sign'
+      )}
+    </Box>
+  </Box>
           </TabPanel>
           <TabPanel value={tabIndex} index={4}>
             <Box sx={{ mt: 2 }}>

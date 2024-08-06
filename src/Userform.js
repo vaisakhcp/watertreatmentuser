@@ -192,7 +192,11 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 
     setOpenSignatureModal(false);
   };
-
+  const handleDateChange = (date, rowIndex) => {
+    const newRows = [...rows];
+    newRows[rowIndex]['Day'] = date; // Update the 'Day' field in the row data
+    setRows(newRows);
+  };
   return (
     <>
       {isMobile ? (
@@ -239,7 +243,12 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
           <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Date</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                  {/* Conditionally show 'Date' only for the first tab (condenserWater) */}
+                  {collectionName === 'condenserWater' ? 'Date' : (
+                    collectionName === 'condenserChemicals' || collectionName === 'coolingTowerChemicals' ? 'Stocks' : ''
+                  )}
+                </TableCell>
                 {columnLabels.map((col, index) => (
                   <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {col}
@@ -268,12 +277,23 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                         </TableCell>
                       ) : (
                         <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                          <TextField
-                            value={rows[rowIndex]?.[col] || ''}
-                            onChange={(e) => handleChange(e, rowIndex, col)}
-                            InputProps={{ sx: { padding: 0, height: '56px' } }}
-                            disabled={col === 'Closing Stock (Kg)'}
-                          />
+                          
+                          {collectionName === 'chilledWater' && col === 'Date' ? ( // Check for 'chilledWater' and 'Day' column
+                            <LocalizationProvider dateAdapter={AdapterDateFns}> 
+                              <DatePicker
+                                value={rows[rowIndex]?.[col] || null} 
+                                onChange={(newValue) => handleDateChange(newValue, rowIndex)}
+                                renderInput={(params) => <TextField {...params} />}
+                              />
+                            </LocalizationProvider>
+                          ) : (
+                            <TextField
+                              value={rows[rowIndex]?.[col] || ''}
+                              onChange={(e) => handleChange(e, rowIndex, col)}
+                              InputProps={{ sx: { padding: 0, height: '56px' } }}
+                              disabled={col === 'Closing Stock (Kg)'}
+                            />
+                          )}
                         </TableCell>
                       )
                     ))}
@@ -482,7 +502,7 @@ const Userform = () => {
   const condenserWaterColumns = ['Makeup Conductivity', 'Condenser Conductivity', 'Free Chlorine', 'Action', 'Name', 'Signature'];
 
   const chilledWaterLabels = [new Date().toLocaleDateString()];
-  const chilledWaterColumns = ['Conductivity', 'Action'];
+  const chilledWaterColumns = ['Day','Conductivity', 'Action','Name'];
   const chilledWaterDefaultRow = [{
     'Day': new Date().toLocaleDateString(),
     'Conductivity': '',
@@ -510,20 +530,17 @@ const Userform = () => {
     'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
-  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants (06-11-2022)'];
+  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants '];
   const coolingTowerChemicalsDefaultRows = coolingTowerChemicalsLabels.map(label => ({
     'Product Name': label,
     'Available empty Jerry Cans in plants (06-11-2022)': ''
   }));
   const ChilledWaterForm = ({ chilledWaterData, setChilledWaterData }) => {
-    const [data, setData] = useState(chilledWaterData);
+   
     const sigPadRef = useRef(null);
     const [openSignatureModal, setOpenSignatureModal] = useState(false);
   
-    const handleChange = (e, field) => {
-      setData({ ...data, [field]: e.target.value });
-      setChilledWaterData({ ...chilledWaterData, [field]: e.target.value });
-    };
+
   
     const handleOpenSignatureModal = () => {
       setOpenSignatureModal(true);
@@ -627,7 +644,11 @@ const Userform = () => {
     );
   };
   
-
+  const [data, setData] = useState(chilledWaterData);
+  const handleChange = (e, field) => {
+    setData({ ...data, [field]: e.target.value });
+    setChilledWaterData({ ...chilledWaterData, [field]: e.target.value });
+  };
   return (
     <ThemeProvider theme={theme}>
       <Container component={Paper} sx={{ p: 3, mt: 3 }}>
@@ -678,12 +699,45 @@ const Userform = () => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
-        <ChilledWaterForm
+        <TableComponent
+              collectionName="chilledWater"
+              rowLabels={chilledWaterLabels}
+              columnLabels={chilledWaterColumns}
+              updateData={updateData}
+          />
+           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
+          <TextField
+            label="Name"
+            value={data.Name || ''}
+            onChange={(e) => handleChange(e, 'Name')}
+            sx={{ flex: 1 }}
+          />
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              border: '1px solid lightgrey',
+              cursor: 'pointer',
+              height: '50px',
+              marginTop: -2
+            }}
+            onClick={handleOpenSignatureModal}
+          >
+            {data.Signature ? (
+              <img src={data.Signature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+            ) : (
+              'Sign'
+            )}
+          </Box>
+        </Box>
+        {/* <ChilledWaterForm
         chilledWaterData={chilledWaterData}
         setChilledWaterData={setChilledWaterData}
         openSignatureModal={openSignatureModal} // Pass openSignatureModal state
         setOpenSignatureModal={setOpenSignatureModal} // Pass setOpenSignatureModal function
-      />
+      /> */}
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
           <TableComponent

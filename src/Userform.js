@@ -6,7 +6,7 @@ import {
   List, ListItem, ListItemText, IconButton, Divider, Chip, Fab
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import { collection, getDocs, setDoc, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc,getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import logo from './logo.png';
@@ -14,7 +14,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
 
 const theme = createTheme({
   palette: {
@@ -126,19 +125,34 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
   const [currentColumn, setCurrentColumn] = useState(null);
   const sigPadRef = useRef(null);
   const isMobile = useMediaQuery('(max-width:600px)');
-  const handleAddRow = () => {
-    setRows([...rows, {}]);
-};
+
   useEffect(() => {
     const fetchData = async () => {
-      const querySnapshot = await getDocs(collection(db, collectionName));
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log(`Fetched data for ${collectionName}:`, data);
-      if (!defaultRows) setRows(data);
+      try {
+        const querySnapshot = await getDocs(collection(db, collectionName));
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`Fetched data for ${collectionName}:`, data);
+        const flattenedData = data.map(item => {
+          const flattenedItem = {};
+          Object.keys(item).forEach(key => {
+            if (typeof item[key] === 'object') {
+              Object.keys(item[key]).forEach(subKey => {
+                flattenedItem[subKey] = item[key][subKey];
+              });
+            } else {
+              flattenedItem[key] = item[key];
+            }
+          });
+          return flattenedItem;
+        });
+        setRows(flattenedData);
+      } catch (error) {
+        console.error(`Error fetching data for ${collectionName}:`, error);
+      } finally {
+      }
     };
     fetchData();
   }, [collectionName, defaultRows]);
-
   useEffect(() => {
     updateData(collectionName, rows);
   }, [rows, updateData, collectionName]);
@@ -165,7 +179,6 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 
   const handleSign = async () => {
     const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-    
     const newRows = [...rows];
     if (!newRows[currentRow]) {
       newRows[currentRow] = {};
@@ -223,61 +236,53 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
         </List>
       ) : (
         <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
-        <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                {collectionName === 'condenserChemicals' || collectionName === 'coolingTowerChemicals' ? 'Stocks' : 'Date'}
-              </TableCell>
-              {columnLabels.map((col, index) => (
-                <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {col}
-                </TableCell>
+          <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Date</TableCell>
+                {columnLabels.map((col, index) => (
+                  <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {col}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rowLabels.map((rowLabel, rowIndex) => (
+                <React.Fragment key={rowIndex}>
+                  <TableRow>
+                    <TableCell sx={{ padding: '8px' }}>{rowLabel}</TableCell>
+                    {columnLabels.map((col, colIndex) => (
+                      col === 'Signature' ? (
+                        <TableCell key={colIndex} sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
+                          <div
+                            onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
+                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                          >
+                            {rows[rowIndex]?.['Signature'] ? (
+                              <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                            ) : (
+                              'Sign'
+                            )}
+                          </div>
+                        </TableCell>
+                      ) : (
+                        <TableCell key={colIndex} sx={{ padding: '8px' }}>
+                          <TextField
+                            value={rows[rowIndex]?.[col] || ''}
+                            onChange={(e) => handleChange(e, rowIndex, col)}
+                            InputProps={{ sx: { padding: 0, height: '56px' } }}
+                            disabled={col === 'Closing Stock (Kg)'}
+                          />
+                        </TableCell>
+                      )
+                    ))}
+                  </TableRow>
+                </React.Fragment>
               ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rowLabels.map((rowLabel, rowIndex) => (
-              <React.Fragment key={rowIndex}>
-                <TableRow>
-                  <TableCell sx={{ padding: '8px' }}>{rowLabel}</TableCell>
-                  {columnLabels.map((col, colIndex) => (
-                    col === 'Signature' ? (
-                      <TableCell key={colIndex} sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
-                        <div
-                          onClick={() => handleOpenSignatureModal(rowIndex, 'Signature')}
-                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
-                        >
-                          {rows[rowIndex]?.['Signature'] ? (
-                            <img src={rows[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                          ) : (
-                            'Sign'
-                          )}
-                        </div>
-                      </TableCell>
-                    ) : (
-                      <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                        <TextField
-                          value={rows[rowIndex]?.[col] || ''}
-                          onChange={(e) => handleChange(e, rowIndex, col)}
-                          InputProps={{ sx: { padding: 0, height: '56px' } }}
-                          disabled={col === 'Closing Stock (Kg)'}
-                        />
-                      </TableCell>
-                    )
-                  ))}
-                </TableRow>
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-          </TableContainer>
-          
-      )}
-      {collectionName === 'condenserChemicals' && ( 
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddRow}>
-          Add Row
-        </Button>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
       <Modal
         open={openSignatureModal}
@@ -330,15 +335,6 @@ const Userform = () => {
   const [noteSignature, setNoteSignature] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const sigPadRef = useRef(null);
-  const [weekStartDate, setWeekStartDate] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
-  const [weekEndDate, setWeekEndDate] = useState(endOfWeek(new Date(), { weekStartsOn: 0 }));
-
-  useEffect(() => {
-    const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
-    const currentWeekEnd = endOfWeek(new Date(), { weekStartsOn: 0 });
-    setWeekStartDate(currentWeekStart);
-    setWeekEndDate(currentWeekEnd);
-  }, []);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -349,16 +345,6 @@ const Userform = () => {
 
     fetchNotes();
   }, []);
-
-  const handleWeekStartDateChange = (date) => {
-    const startOfSelectedWeek = startOfWeek(date, { weekStartsOn: 0 });
-    setWeekStartDate(startOfSelectedWeek);
-  };
-
-  const handleWeekEndDateChange = (date) => {
-    const endOfSelectedWeek = endOfWeek(date, { weekStartsOn: 0 });
-    setWeekEndDate(endOfSelectedWeek);
-  };
 
   const [noteInput, setNoteInput] = useState('');
   const [condenserWaterData, setCondenserWaterData] = useState([]);
@@ -419,18 +405,6 @@ const Userform = () => {
     setAdditionalTableData(additionalTableData.map(item => ({ ...item, value: '' })));
   };
 
-  const handleClearData = async () => {
-    const collections = ['condenserWater', 'chilledWater', 'condenserChemicals', 'coolingTowerChemicals', 'additionalTable', 'notes'];
-    for (const collectionName of collections) {
-      const querySnapshot = await getDocs(collection(db, collectionName));
-      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
-    }
-    handleClearAllData();
-    alert('All data cleared successfully!');
-    window.location.reload(); // Reload the page
-  };
-
   const updateData = (collectionName, data) => {
     switch (collectionName) {
       case 'condenserWater':
@@ -455,7 +429,7 @@ const Userform = () => {
   };
 
   const handleSaveAllData = async () => {
-    const plantName = "AD-008"; // Plant name
+    const plantName = "AD-009"; // Plant name
   
     await handleSaveData('condenserWater', condenserWaterData, condenserWaterLabels, plantName);
     await handleSaveData('chilledWater', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
@@ -536,7 +510,7 @@ const Userform = () => {
     'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
-  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants'];
+  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants (06-11-2022)'];
   const coolingTowerChemicalsDefaultRows = coolingTowerChemicalsLabels.map(label => ({
     'Product Name': label,
     'Available empty Jerry Cans in plants (06-11-2022)': ''
@@ -655,90 +629,169 @@ const Userform = () => {
   
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <ThemeProvider theme={theme}>
-        <Container component={Paper} sx={{ p: 3, mt: 3 }}>
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <img src={require('./logo.png')} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
-            <Typography variant={isMobile ? 'h6' : 'h5'} component="h1">
-              Water Treatment Weekly Report
-            </Typography>
-            <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} component="h2">
-              Week Commencing Sunday: {format(weekStartDate, 'dd MMMM yyyy')} to Saturday: {format(weekEndDate, 'dd MMMM yyyy')}
-            </Typography>
-            <Chip label="Plant Name: AD-008" color="primary" size="small" sx={{ mt: 0.5 }} />
-            <Box sx={{ mt: 1 }}>
-              <Grid container spacing={1} alignItems="center">
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="subtitle2">Operations Department: TOM-OPS-FM-2009</Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="subtitle2">Revision 03 Dated: 25/10/2021</Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="subtitle2">Replaces Revision 02 of: 19/03/2005</Typography>
-                </Grid>
+    <ThemeProvider theme={theme}>
+      <Container component={Paper} sx={{ p: 3, mt: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <img src={require('./logo.png')} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
+          <Typography variant={isMobile ? 'h6' : 'h5'} component="h1">
+            Water Treatment Weekly Report
+          </Typography>
+          <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} component="h2">
+            Week Commencing Sunday : 28th July 2024 to 3rd August 2024
+          </Typography>
+          <Chip label="Plant Name: AD-009" color="primary" size="small" sx={{ mt: 0.5 }} />
+          <Box sx={{ mt: 1 }}>
+            <Grid container spacing={1} alignItems="center">
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2">Operations Department: TOM-OPS-FM-2009</Typography>
               </Grid>
-            </Box>
-            <Box sx={{ mt: 2 }} >
-              <DatePicker
-                label="Select Start Date"
-                value={weekStartDate}
-                onChange={handleWeekStartDateChange}
-                renderInput={(params) => <TextField {...params} />}
-              />
-              <DatePicker
-                label="Select End Date"
-                value={weekEndDate}
-                onChange={handleWeekEndDateChange}
-                renderInput={(params) => <TextField {...params} />}
-              />
-            </Box>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2">Revision 03 Dated: 25/10/2021</Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2">Replaces Revision 02 of: 19/03/2005</Typography>
+              </Grid>
+            </Grid>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3, gap: 1 }}>
-            <Button variant="contained" color="primary" onClick={handleSaveAllData}>
-              Submit report
-            </Button>
-            <a href="#" onClick={handleClearData} style={{ color: 'secondary', textDecoration: 'underline', cursor: 'pointer', padding: '8px', borderRadius: '4px' }}>
-              Clear Data
-            </a>
-          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3 }}>
+          <Button variant="contained" color="primary" onClick={handleSaveAllData}>
+            Submit report
+          </Button>
+        </Box>
 
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabIndex} onChange={handleTabChange} centered variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
-              <Tab label="Condenser Water" />
-              <Tab label="Chilled Water" />
-              <Tab label="Condenser Chemicals" />
-              <Tab label="Cooling Tower Chemicals" />
-              <Tab label="Notes" />
-            </Tabs>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs value={tabIndex} onChange={handleTabChange} centered variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
+            <Tab label="Condenser Water" />
+            <Tab label="Chilled Water" />
+            <Tab label="Condenser Chemicals" />
+            <Tab label="Cooling Tower Chemicals" />
+            <Tab label="Notes" />
+          </Tabs>
+        </Box>
+        <TabPanel value={tabIndex} index={0}>
+          <TableComponent
+            collectionName="condenserWater"
+            rowLabels={condenserWaterLabels}
+            columnLabels={condenserWaterColumns}
+            updateData={updateData}
+          />
+        </TabPanel>
+        <TabPanel value={tabIndex} index={1}>
+        <ChilledWaterForm
+        chilledWaterData={chilledWaterData}
+        setChilledWaterData={setChilledWaterData}
+        openSignatureModal={openSignatureModal} // Pass openSignatureModal state
+        setOpenSignatureModal={setOpenSignatureModal} // Pass setOpenSignatureModal function
+      />
+        </TabPanel>
+        <TabPanel value={tabIndex} index={2}>
+          <TableComponent
+            collectionName="condenserChemicals"
+            rowLabels={condenserChemicalsLabels}
+            columnLabels={condenserChemicalsColumns}
+            defaultRows={condenserChemicalsDefaultRows}
+            updateData={updateData}
+            calculateClosingStock
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
+            <TextField
+              label="Name"
+              value={technicianName}
+              onChange={(e) => setTechnicianName(e.target.value)}
+              sx={{ flex: 1 }}
+            />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                border: '1px solid lightgrey',
+                cursor: 'pointer',
+                height: '50px',
+              }}
+              onClick={handleOpenSignatureModal}
+            >
+              {noteSignature ? (
+                <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+              ) : (
+                'Sign'
+              )}
+            </Box>
           </Box>
-          <TabPanel value={tabIndex} index={0}>
-            <TableComponent
-              collectionName="condenserWater"
-              rowLabels={condenserWaterLabels}
-              columnLabels={condenserWaterColumns}
-              updateData={updateData}
-            />
-            
-          </TabPanel>
-          <TabPanel value={tabIndex} index={1}>
-            <ChilledWaterForm chilledWaterData={chilledWaterData} setChilledWaterData={setChilledWaterData} />
-          </TabPanel>
-          <TabPanel value={tabIndex} index={2}>
-            <TableComponent
-              collectionName="condenserChemicals"
-              rowLabels={condenserChemicalsLabels}
-              columnLabels={condenserChemicalsColumns}
-              defaultRows={condenserChemicalsDefaultRows}
-              updateData={updateData}
-              calculateClosingStock
-            />
+        </TabPanel>
+        <TabPanel value={tabIndex} index={3}>
+          <TableComponent
+            collectionName="coolingTowerChemicals"
+            rowLabels={coolingTowerChemicalsLabels}
+            columnLabels={coolingTowerChemicalsColumns}
+            defaultRows={coolingTowerChemicalsDefaultRows}
+            updateData={updateData}
+          />
+          <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
+            <Table>
+              <TableBody>
+                {additionalTableData.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{item.label}</TableCell>
+                    <TableCell>
+                      {index < 2 ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body1">10<sup></sup></Typography> {/* Superscript using <sup> tag */}
+                          <TextField
+                            value={item.value}
+                            onChange={(e) => handleAdditionalTableChange(e, index)}
+                            sx={{ width: '56px', ml: 1 }} // Adjust width as needed
+                            InputProps={{
+                              inputProps: { style: { textAlign: 'center' } }
+                            }}
+                          />
+                        </Box>
+                      ) : (
+                        <TextField
+                          value={item.value}
+                          onChange={(e) => handleAdditionalTableChange(e, index)}
+                          fullWidth
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </TabPanel>
+        <TabPanel value={tabIndex} index={4}>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6">Notes</Typography>
+            <List>
+              {noteList.map((note, index) => (
+                <ListItem key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <ListItemText primary={note} />
+                  <IconButton edge="end" onClick={() => handleDeleteNote(index)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItem>
+              ))}
+              <ListItem>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  placeholder="Add a note"
+                />
+                <IconButton color="primary" onClick={handleAddNote}>
+                  <AddIcon />
+                </IconButton>
+              </ListItem>
+            </List>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
               <TextField
                 label="Name"
-                value={technicianName}
-                onChange={(e) => setTechnicianName(e.target.value)}
+                value={noteName}
+                onChange={(e) => setNoteName(e.target.value)}
                 sx={{ flex: 1 }}
               />
               <Box
@@ -760,179 +813,59 @@ const Userform = () => {
                 )}
               </Box>
             </Box>
-          </TabPanel>
-          <TabPanel value={tabIndex} index={3}>
-            <TableComponent
-              collectionName="coolingTowerChemicals"
-              rowLabels={coolingTowerChemicalsLabels}
-              columnLabels={coolingTowerChemicalsColumns}
-              defaultRows={coolingTowerChemicalsDefaultRows}
-              updateData={updateData}
-            />
-            <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
-              <Table>
-                <TableBody>
-                  {additionalTableData.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.label}</TableCell>
-                      <TableCell>
-                        {index < 2 ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">10<sup></sup></Typography> {/* Superscript using <sup> tag */}
-                            <TextField
-                              value={item.value}
-                              onChange={(e) => handleAdditionalTableChange(e, index)}
-                              sx={{ width: '56px', ml: 1 }} // Adjust width as needed
-                              InputProps={{
-                                inputProps: { style: { textAlign: 'center' } }
-                              }}
-                            />
-                          </Box>
-                        ) : (
-                          <TextField
-                            value={item.value}
-                            onChange={(e) => handleAdditionalTableChange(e, index)}
-                            fullWidth
-                          />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
-    <TextField
-      label="Name"
-      value={technicianName}
-      onChange={(e) => setTechnicianName(e.target.value)}
-      sx={{ flex: 1 }}
-    />
-    <Box
-      sx={{
-        flex: 1,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        border: '1px solid lightgrey',
-        cursor: 'pointer',
-        height: '50px',
-      }}
-      onClick={handleOpenSignatureModal}
-    >
-      {noteSignature ? (
-        <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
-      ) : (
-        'Sign'
-      )}
-    </Box>
-  </Box>
-          </TabPanel>
-          <TabPanel value={tabIndex} index={4}>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6">Notes</Typography>
-              <List>
-                {noteList.map((note, index) => (
-                  <ListItem key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <ListItemText primary={note} />
-                    <IconButton edge="end" onClick={() => handleDeleteNote(index)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </ListItem>
-                ))}
-                <ListItem>
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    value={noteInput}
-                    onChange={(e) => setNoteInput(e.target.value)}
-                    placeholder="Add a note"
-                  />
-                  <IconButton color="primary" onClick={handleAddNote}>
-                    <AddIcon />
-                  </IconButton>
-                </ListItem>
-              </List>
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
-                <TextField
-                  label="Name"
-                  value={noteName}
-                  onChange={(e) => setNoteName(e.target.value)}
-                  sx={{ flex: 1 }}
-                />
-                <Box
-                  sx={{
-                    flex: 1,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    border: '1px solid lightgrey',
-                    cursor: 'pointer',
-                    height: '50px',
-                  }}
-                  onClick={handleOpenSignatureModal}
-                >
-                  {noteSignature ? (
-                    <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                  ) : (
-                    'Sign'
-                  )}
-                </Box>
-              </Box>
-            </Box>
-          </TabPanel>
-        </Container>
-        <Fab
-          color="primary"
-          aria-label="save"
-          onClick={handleSaveAllData}
+          </Box>
+        </TabPanel>
+      </Container>
+      <Fab
+        color="primary"
+        aria-label="save"
+        onClick={handleSaveAllData}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+        }}
+      >
+        <SaveIcon />
+      </Fab>
+      <Modal
+        open={openSignatureModal}
+        onClose={() => setOpenSignatureModal(false)}
+        aria-labelledby="signature-modal-title"
+        aria-describedby="signature-modal-description"
+      >
+        <Box
           sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: 600,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <SaveIcon />
-        </Fab>
-        <Modal
-          open={openSignatureModal}
-          onClose={() => setOpenSignatureModal(false)}
-          aria-labelledby="signature-modal-title"
-          aria-describedby="signature-modal-description"
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '90%',
-              maxWidth: 600,
-              bgcolor: 'background.paper',
-              border: '2px solid #000',
-              boxShadow: 24,
-              p: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Typography id="signature-modal-title" variant="h6" component="h2" gutterBottom>
-              Signature
-            </Typography>
-            <Box sx={{ width: '100%', height: 200, border: '1px solid #000' }}>
-              <SignaturePad ref={sigPadRef} canvasProps={{ style: { width: '100%', height: '100%' } }} />
-            </Box>
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-              <Button variant="contained" color="primary" onClick={handleSign}>
-                Sign
-              </Button>
-            </Box>
+          <Typography id="signature-modal-title" variant="h6" component="h2" gutterBottom>
+            Signature
+          </Typography>
+          <Box sx={{ width: '100%', height: 200, border: '1px solid #000' }}>
+            <SignaturePad ref={sigPadRef} canvasProps={{ style: { width: '100%', height: '100%' } }} />
           </Box>
-        </Modal>
-      </ThemeProvider>
-    </LocalizationProvider>
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <Button variant="contained" color="primary" onClick={handleSign}>
+              Sign
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+    </ThemeProvider>
   );
 };
 

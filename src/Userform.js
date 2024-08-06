@@ -502,7 +502,7 @@ const Userform = () => {
   const condenserWaterColumns = ['Makeup Conductivity', 'Condenser Conductivity', 'Free Chlorine', 'Action', 'Name', 'Signature'];
 
   const chilledWaterLabels = [new Date().toLocaleDateString()];
-  const chilledWaterColumns = ['Day','Conductivity', 'Action','Name'];
+  const chilledWaterColumns = ['Day','Conductivity', 'Action'];
   const chilledWaterDefaultRow = [{
     'Day': new Date().toLocaleDateString(),
     'Conductivity': '',

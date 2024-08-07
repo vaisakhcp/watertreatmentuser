@@ -6,7 +6,7 @@ import {
   List, ListItem, ListItemText, IconButton, Divider, Chip, Fab, CircularProgress, Backdrop
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import logo from './logo.png';
@@ -352,8 +352,6 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 const Userform = () => {
   const [weekCommencing, setWeekCommencing] = useState(dayjs().startOf('week'));
 
-  // ... (chilledWaterData, other data)
-
   // Calculate week start (Sunday) and end (Saturday)
   const weekStart = weekCommencing.startOf('week').format('Do MMMM YYYY');
   const weekEnd = weekCommencing.endOf('week').format('Do MMMM YYYY');
@@ -460,7 +458,6 @@ const Userform = () => {
         console.log('condenserWater2', data);
         break;
       case 'chilledWater2':
-       console.log('chilledda',data)
         setChilledWaterData(data);
         break;
       case 'condenserChemicals2':
@@ -476,10 +473,14 @@ const Userform = () => {
 
   const handleSaveAllData = async () => {
     setIsLoading(true);
-    const plantName = "AD-009"; // Plant name
+    const plantName = "AD-008"; // Plant name
     try {
+      const chilledWaterDataWithId = chilledWaterData.map(item => ({
+        ...item,
+        id: item.id || doc(collection(db, 'chilledWater2')).id  // Use existing ID or generate a new one
+      }));
       await handleSaveData('condenserWater2', condenserWaterData, condenserWaterLabels, plantName);
-      await handleSaveData('chilledWater2', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
+      await handleSaveData('chilledWater2', chilledWaterDataWithId, chilledWaterLabels, plantName); // Pass as array
       await handleSaveData('condenserChemicals2', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals2', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
       await handleSaveAdditionalTable();
@@ -504,38 +505,6 @@ const Userform = () => {
       const rowDoc = doc(db, collectionName, row.id || rowLabels[data.indexOf(row)]);
       await setDoc(rowDoc, row);
     }
-    // if (!Array.isArray(data)) {
-    //   data = [data]; // Convert to an array if it is not
-    // }
-
-    // const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
-    // const plantDocRef = doc(db, collectionName, plantName);
-    // try {
-    //   const docSnap = await getDoc(plantDocRef);
-
-    //   if (docSnap.exists()) {
-    //     // Plant document exists, update it
-    //     const existingData = docSnap.data();
-    //     const updatedData = rowLabels.reduce((acc, label, index) => {
-    //       acc[label] = data[index] || {};  // Handle cases where data might be missing
-    //       return acc;
-    //     }, existingData);
-        
-    //     await setDoc(plantDocRef, updatedData, { merge: true });
-    //   } else {
-    //     // Plant document doesn't exist, create it with initial data
-    //     const initialData = rowLabels.reduce((acc, label, index) => {
-    //       acc[label] = data[index] || {};
-    //       return acc;
-    //     }, {});
-        
-    //     await setDoc(plantDocRef, initialData);
-    //   }
-      
-    //   console.log(`Data for ${plantName} saved to ${collectionName} successfully`);
-    // } catch (error) {
-    //   console.error(`Error saving data to ${collectionName} for ${plantName}:`, error);
-    // }
   };
 
   const handleOpenSignatureModal = () => {
@@ -580,7 +549,7 @@ const Userform = () => {
     'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
-  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants'];
+  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants (06-11-2022)'];
   const coolingTowerChemicalsDefaultRows = coolingTowerChemicalsLabels.map(label => ({
     'Product Name': label,
     'Available empty Jerry Cans in plants (06-11-2022)': ''
@@ -615,7 +584,7 @@ const Userform = () => {
                 />
               </LocalizationProvider>
             </Grid>
-          <Chip label="Plant Name: AD-009" color="primary" size="small" sx={{ mt: 0.5 }} />
+          <Chip label="Plant Name: AD-008" color="primary" size="small" sx={{ mt: 0.5 }} />
           <Box sx={{ mt: 1 }}>
             <Grid container spacing={1} alignItems="center">
               <Grid item xs={12} sm={4}>

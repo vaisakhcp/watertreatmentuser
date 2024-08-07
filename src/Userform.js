@@ -16,6 +16,10 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'; // Use dayjs adapter
+
+import dayjs from 'dayjs'; // Import   
+
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -247,8 +251,8 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                  {collectionName === 'condenserWater1' ? 'Date' : (
-                    collectionName === 'condenserChemicals1' || collectionName === 'coolingTowerChemicals1' ? 'Stocks' : ''
+                  {collectionName === 'condenserWater2' ? 'Date' : (
+                    collectionName === 'condenserChemicals2' || collectionName === 'coolingTowerChemicals2' ? 'Stocks' : ''
                   )}
                 </TableCell>
                 {columnLabels.map((col, index) => (
@@ -279,7 +283,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                         </TableCell>
                       ) : (
                         <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                          {collectionName === 'chilledWater1' && col === 'Date' ? (
+                          {collectionName === 'chilledWater2' && col === 'Date' ? (
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                               <DatePicker
                                 value={rows[rowIndex]?.[col] || null}
@@ -346,6 +350,18 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 };
 
 const Userform = () => {
+  const [weekCommencing, setWeekCommencing] = useState(dayjs().startOf('week'));
+
+  // ... (chilledWaterData, other data)
+
+  // Calculate week start (Sunday) and end (Saturday)
+  const weekStart = weekCommencing.startOf('week').format('Do MMMM YYYY');
+  const weekEnd = weekCommencing.endOf('week').format('Do MMMM YYYY');
+    
+  const handleDateChange = (date) => {
+    setWeekCommencing(dayjs(date).startOf('week')); // Set to start of week (Sunday)
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [reportDate, setReportDate] = useState(new Date());
@@ -360,7 +376,7 @@ const Userform = () => {
 
   useEffect(() => {
     const fetchNotes = async () => {
-      const notesSnapshot = await getDocs(collection(db, 'notes1'));
+      const notesSnapshot = await getDocs(collection(db, 'notes2'));
       const notesData = notesSnapshot.docs.map(doc => doc.data().notes);
       setNoteList(notesData.flat()); // Flatten the array if notes is an array of arrays
     };
@@ -402,7 +418,7 @@ const Userform = () => {
   };
 
   const handleSaveNotes = async () => {
-    const notesDoc = doc(db, 'notes1', 'noteList');
+    const notesDoc = doc(db, 'notes2', 'noteList');
     await setDoc(notesDoc, { notes: noteList });
   };
 
@@ -439,18 +455,18 @@ const Userform = () => {
 
   const updateData = (collectionName, data) => {
     switch (collectionName) {
-      case 'condenserWater1':
+      case 'condenserWater2':
         setCondenserWaterData(data);
-        console.log('condenserWater1', data);
+        console.log('condenserWater2', data);
         break;
-      case 'chilledWater1':
+      case 'chilledWater2':
        console.log('chilledda',data)
         setChilledWaterData(data);
         break;
-      case 'condenserChemicals1':
+      case 'condenserChemicals2':
         setCondenserChemicalsData(data);
         break;
-      case 'coolingTowerChemicals1':
+      case 'coolingTowerChemicals2':
         setCoolingTowerChemicalsData(data);
         break;
       default:
@@ -462,10 +478,10 @@ const Userform = () => {
     setIsLoading(true);
     const plantName = "AD-009"; // Plant name
     try {
-      await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
-      await handleSaveData('chilledWater1', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
-      await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
-      await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
+      await handleSaveData('condenserWater2', condenserWaterData, condenserWaterLabels, plantName);
+      await handleSaveData('chilledWater2', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
+      await handleSaveData('condenserChemicals2', condenserChemicalsData, condenserChemicalsLabels, plantName);
+      await handleSaveData('coolingTowerChemicals2', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
       await handleSaveAdditionalTable();
       await handleSaveNotes();
 
@@ -584,9 +600,21 @@ const Userform = () => {
           <Typography variant={isMobile ? 'h6' : 'h5'} component="h1">
             Water Treatment Weekly Report
           </Typography>
-          <Typography variant={isMobile ? 'subtitle2' : 'subtitle1'} component="h2">
-            Week Commencing Sunday : 28th July 2024 to 3rd August 2024
-          </Typography>
+          <Grid item xs={12} sm={8} md={6}> {/* Adjust column width based on screen size */}
+              <Typography variant="subtitle1" component="h2">
+                Week Commencing Sunday : {weekStart} to {weekEnd}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4} md={3} marginTop={3}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  value={weekCommencing}
+                  onChange={handleDateChange}
+                  label="Select Week"
+                  renderInput={(params) => <TextField {...params} fullWidth />}
+                />
+              </LocalizationProvider>
+            </Grid>
           <Chip label="Plant Name: AD-009" color="primary" size="small" sx={{ mt: 0.5 }} />
           <Box sx={{ mt: 1 }}>
             <Grid container spacing={1} alignItems="center">
@@ -622,7 +650,7 @@ const Userform = () => {
         </Box>
         <TabPanel value={tabIndex} index={0}>
           <TableComponent
-            collectionName="condenserWater1"
+            collectionName="condenserWater2"
             rowLabels={condenserWaterLabels}
             columnLabels={condenserWaterColumns}
             updateData={updateData}
@@ -630,7 +658,7 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           <TableComponent
-            collectionName="chilledWater1"
+            collectionName="chilledWater2"
             rowLabels={chilledWaterLabels}
             columnLabels={chilledWaterColumns}
             updateData={updateData}
@@ -638,7 +666,7 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
           <TableComponent
-            collectionName="condenserChemicals1"
+            collectionName="condenserChemicals2"
             rowLabels={condenserChemicalsLabels}
             columnLabels={condenserChemicalsColumns}
             updateData={updateData}
@@ -672,7 +700,7 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={3}>
           <TableComponent
-            collectionName="coolingTowerChemicals1"
+            collectionName="coolingTowerChemicals2"
             rowLabels={coolingTowerChemicalsLabels}
             columnLabels={coolingTowerChemicalsColumns}
             updateData={updateData}

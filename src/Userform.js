@@ -458,8 +458,6 @@ const Userform = () => {
   };
 
   const handleSaveData = async (collectionName, data, rowLabels) => {
-    console.log('collectionName',collectionName)
-    console.log('data',JSON.stringify(data))
       if (!Array.isArray(data)) {
       data = [data]; // Convert to an array if it is not
     }
@@ -592,7 +590,6 @@ const Userform = () => {
           </Tabs>
         </Box>
         <TabPanel value={tabIndex} index={0}>
-          {JSON.stringify(condenserWaterData)}
           <TableComponent
             collectionName="condenserWater1"
             rowLabels={condenserWaterLabels}
@@ -601,7 +598,6 @@ const Userform = () => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
-          {JSON.stringify(chilledWaterData)}
           <TableComponent
             collectionName="chilledWater1"
             rowLabels={chilledWaterLabels}
@@ -610,7 +606,6 @@ const Userform = () => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
-          {JSON.stringify(condenserChemicalsData)}
           <TableComponent
             collectionName="condenserChemicals1"
             rowLabels={condenserChemicalsLabels}
@@ -645,7 +640,6 @@ const Userform = () => {
           </Box>
         </TabPanel>
         <TabPanel value={tabIndex} index={3}>
-          {JSON.stringify(coolingTowerChemicalsData)}
           <TableComponent
             collectionName="coolingTowerChemicals1"
             rowLabels={coolingTowerChemicalsLabels}

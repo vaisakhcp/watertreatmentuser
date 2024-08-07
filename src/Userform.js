@@ -113,7 +113,7 @@ const Userform = () => {
   const sigPadRef = useRef(null);
   const [formattedWeekStart, setFormattedWeekStart] = useState(weekCommencing.format('DD-MM-YYYY'));
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const weekStart = weekCommencing.startOf('week').format('Do MMMM YYYY');
   const weekEnd = weekCommencing.endOf('week').format('Do MMMM YYYY');
 
@@ -254,10 +254,37 @@ const Userform = () => {
     'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
-
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setIsInitialLoading(true);
+      try {
+        // Fetch data for all components here
+        const condenserWaterSnapshot = await getDocs(collection(db, 'condenserWater1'));
+        const chilledWaterSnapshot = await getDocs(collection(db, 'chilledWater1'));
+        const condenserChemicalsSnapshot = await getDocs(collection(db, 'condenserChemicals1'));
+        const coolingTowerChemicalsSnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
+  
+        // Process and set data accordingly
+        setCondenserWaterData(condenserWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setChilledWaterData(chilledWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setCondenserChemicalsData(condenserChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setCoolingTowerChemicalsData(coolingTowerChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+  
+    fetchInitialData();
+  }, []);
+  
   return (
     <ThemeProvider theme={theme}>
-      <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open={isLoading}>
+   <Backdrop
+      sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      open={isLoading || isInitialLoading}
+    >
         <CircularProgress color="inherit" />
       </Backdrop>
       <Container component={Paper} sx={{ p: 3, mt: 3 }}>

@@ -6,7 +6,7 @@ import {
   List, ListItem, ListItemText, IconButton, Divider, Chip, Fab
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import { collection, getDocs, setDoc, doc,getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import logo from './logo.png';
@@ -148,11 +148,11 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
         setRows(flattenedData);
       } catch (error) {
         console.error(`Error fetching data for ${collectionName}:`, error);
-      } finally {
       }
     };
     fetchData();
   }, [collectionName, defaultRows]);
+
   useEffect(() => {
     updateData(collectionName, rows);
   }, [rows, updateData, collectionName]);
@@ -192,11 +192,13 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 
     setOpenSignatureModal(false);
   };
+
   const handleDateChange = (date, rowIndex) => {
     const newRows = [...rows];
     newRows[rowIndex]['Day'] = date; // Update the 'Day' field in the row data
     setRows(newRows);
   };
+
   return (
     <>
       {isMobile ? (
@@ -243,8 +245,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
           <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
             <TableHead>
               <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                  {/* Conditionally show 'Date' only for the first tab (condenserWater) */}
+                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
                   {collectionName === 'condenserWater' ? 'Date' : (
                     collectionName === 'condenserChemicals' || collectionName === 'coolingTowerChemicals' ? 'Stocks' : ''
                   )}
@@ -277,11 +278,10 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                         </TableCell>
                       ) : (
                         <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                          
-                          {collectionName === 'chilledWater' && col === 'Date' ? ( // Check for 'chilledWater' and 'Day' column
-                            <LocalizationProvider dateAdapter={AdapterDateFns}> 
+                          {collectionName === 'chilledWater' && col === 'Date' ? (
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
                               <DatePicker
-                                value={rows[rowIndex]?.[col] || null} 
+                                value={rows[rowIndex]?.[col] || null}
                                 onChange={(newValue) => handleDateChange(newValue, rowIndex)}
                                 renderInput={(params) => <TextField {...params} />}
                               />
@@ -450,7 +450,7 @@ const Userform = () => {
 
   const handleSaveAllData = async () => {
     const plantName = "AD-009"; // Plant name
-  
+
     await handleSaveData('condenserWater', condenserWaterData, condenserWaterLabels, plantName);
     await handleSaveData('chilledWater', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
     await handleSaveData('condenserChemicals', condenserChemicalsData, condenserChemicalsLabels, plantName);
@@ -458,23 +458,22 @@ const Userform = () => {
     await handleSaveAdditionalTable();
     await handleSaveNotes();
   };
-  
-  
+
   const handleSaveData = async (collectionName, data, rowLabels, plantName) => {
     if (!Array.isArray(data)) {
       data = [data]; // Convert to an array if it is not
     }
-  
+
     const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
-  
-    for (const row of data) {
-      const docId = `${currentDate}_${plantName}`;
+
+    for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+      const row = data[rowIndex];
+      const docId = `${currentDate}_${plantName}_${rowLabels[rowIndex]}`;
       const rowDocRef = doc(db, collectionName, docId);
-  
+
       try {
-        // Fetch existing document data correctly
         const docSnap = await getDoc(rowDocRef);
-  
+
         if (docSnap.exists()) {
           // Update existing document
           await setDoc(rowDocRef, { ...docSnap.data(), ...row }, { merge: true });
@@ -488,6 +487,7 @@ const Userform = () => {
       }
     }
   };
+
   const handleOpenSignatureModal = () => {
     setOpenSignatureModal(true);
   };
@@ -502,13 +502,13 @@ const Userform = () => {
   const condenserWaterColumns = ['Makeup Conductivity', 'Condenser Conductivity', 'Free Chlorine', 'Action', 'Name', 'Signature'];
 
   const chilledWaterLabels = [new Date().toLocaleDateString()];
-  const chilledWaterColumns = ['Day','Conductivity', 'Action'];
+  const chilledWaterColumns = ['Day', 'Conductivity', 'Action'];
   const chilledWaterDefaultRow = [{
     'Day': new Date().toLocaleDateString(),
     'Conductivity': '',
     'Name': '',
     'Signature': ''
-  }]
+  }];
   const condenserChemicalsLabels = [
     'PM3601 (25Kg)', 'Biocide AQ', 'PF CC6202 (20Kg)', 'PDV Salt (25Kg)', 'Sodium Hypochlorite (25 kg)',
     'BD 250C (25Kg)', 'PF CL4015 (CHW)', 'BD 350 (30Kg)', 'Dip slide (pcs)'
@@ -530,130 +530,17 @@ const Userform = () => {
     'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
-  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants '];
+  const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants'];
   const coolingTowerChemicalsDefaultRows = coolingTowerChemicalsLabels.map(label => ({
     'Product Name': label,
     'Available empty Jerry Cans in plants (06-11-2022)': ''
   }));
-  const ChilledWaterForm = ({ chilledWaterData, setChilledWaterData }) => {
-   
-    const sigPadRef = useRef(null);
-    const [openSignatureModal, setOpenSignatureModal] = useState(false);
-  
 
-  
-    const handleOpenSignatureModal = () => {
-      setOpenSignatureModal(true);
-    };
-  
-    const handleSign = () => {
-      const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-      setData({ ...data, Signature: signatureDataUrl });
-      setChilledWaterData({ ...chilledWaterData, Signature: signatureDataUrl });
-      setOpenSignatureModal(false);
-    };
-  
-    return (
-      <Box>
-        <TextField
-          label="Day"
-          value={data.Day || ''}
-          onChange={(e) => handleChange(e, 'Day')}
-          fullWidth
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          label="Conductivity"
-          value={data.Conductivity || ''}
-          onChange={(e) => handleChange(e, 'Conductivity')}
-          fullWidth
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          label="Action"
-          value={data.Action || ''}
-          onChange={(e) => handleChange(e, 'Action')}
-          fullWidth
-          sx={{ mb: 2 }}
-        />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
-          <TextField
-            label="Name"
-            value={data.Name || ''}
-            onChange={(e) => handleChange(e, 'Name')}
-            sx={{ flex: 1 }}
-          />
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              border: '1px solid lightgrey',
-              cursor: 'pointer',
-              height: '50px',
-              marginTop: -2
-            }}
-            onClick={handleOpenSignatureModal}
-          >
-            {data.Signature ? (
-              <img src={data.Signature} alt="Signature" style={{ width: '100px', height: '50px' }} />
-            ) : (
-              'Sign'
-            )}
-          </Box>
-        </Box>
-        <Modal
-          open={openSignatureModal}
-          onClose={() => setOpenSignatureModal(false)}
-          aria-labelledby="signature-modal-title"
-          aria-describedby="signature-modal-description"
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '90%',
-              maxWidth: 600,
-              bgcolor: 'background.paper',
-              border: '2px solid #000',
-              boxShadow: 24,
-              p: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Typography id="signature-modal-title" variant="h6" component="h2" gutterBottom>
-              Signature
-            </Typography>
-            <Box sx={{ width: '100%', height: 200, border: '1px solid #000' }}>
-              <SignaturePad ref={sigPadRef} canvasProps={{ style: { width: '100%', height: '100%' } }} />
-            </Box>
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-              <Button variant="contained" color="primary" onClick={handleSign}>
-                Sign
-              </Button>
-            </Box>
-          </Box>
-        </Modal>
-      </Box>
-    );
-  };
-  
-  const [data, setData] = useState(chilledWaterData);
-  const handleChange = (e, field) => {
-    setData({ ...data, [field]: e.target.value });
-    setChilledWaterData({ ...chilledWaterData, [field]: e.target.value });
-  };
   return (
     <ThemeProvider theme={theme}>
       <Container component={Paper} sx={{ p: 3, mt: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <img src={require('./logo.png')} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
+          <img src={logo} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
           <Typography variant={isMobile ? 'h6' : 'h5'} component="h1">
             Water Treatment Weekly Report
           </Typography>
@@ -699,45 +586,12 @@ const Userform = () => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
-        <TableComponent
-              collectionName="chilledWater"
-              rowLabels={chilledWaterLabels}
-              columnLabels={chilledWaterColumns}
-              updateData={updateData}
+          <TableComponent
+            collectionName="chilledWater"
+            rowLabels={chilledWaterLabels}
+            columnLabels={chilledWaterColumns}
+            updateData={updateData}
           />
-           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
-          <TextField
-            label="Name"
-            value={data.Name || ''}
-            onChange={(e) => handleChange(e, 'Name')}
-            sx={{ flex: 1 }}
-          />
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              border: '1px solid lightgrey',
-              cursor: 'pointer',
-              height: '50px',
-              marginTop: -2
-            }}
-            onClick={handleOpenSignatureModal}
-          >
-            {data.Signature ? (
-              <img src={data.Signature} alt="Signature" style={{ width: '100px', height: '50px' }} />
-            ) : (
-              'Sign'
-            )}
-          </Box>
-        </Box>
-        {/* <ChilledWaterForm
-        chilledWaterData={chilledWaterData}
-        setChilledWaterData={setChilledWaterData}
-        openSignatureModal={openSignatureModal} // Pass openSignatureModal state
-        setOpenSignatureModal={setOpenSignatureModal} // Pass setOpenSignatureModal function
-      /> */}
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
           <TableComponent
@@ -792,11 +646,11 @@ const Userform = () => {
                     <TableCell>
                       {index < 2 ? (
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body1">10<sup></sup></Typography> {/* Superscript using <sup> tag */}
+                          <Typography variant="body1">10<sup></sup></Typography>
                           <TextField
                             value={item.value}
                             onChange={(e) => handleAdditionalTableChange(e, index)}
-                            sx={{ width: '56px', ml: 1 }} // Adjust width as needed
+                            sx={{ width: '56px', ml: 1 }}
                             InputProps={{
                               inputProps: { style: { textAlign: 'center' } }
                             }}

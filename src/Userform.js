@@ -6,7 +6,7 @@ import {
   List, ListItem, ListItemText, IconButton, Divider, Chip, Fab, CircularProgress, Backdrop
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc,writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import logo from './logo.png';
@@ -251,8 +251,8 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                  {collectionName === 'condenserWater2' ? 'Date' : (
-                    collectionName === 'condenserChemicals2' || collectionName === 'coolingTowerChemicals2' ? 'Stocks' : ''
+                  {collectionName === 'condenserWater1' ? 'Date' : (
+                    collectionName === 'condenserChemicals1' || collectionName === 'coolingTowerChemicals1' ? 'Stocks' : ''
                   )}
                 </TableCell>
                 {columnLabels.map((col, index) => (
@@ -283,7 +283,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                         </TableCell>
                       ) : (
                         <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                          {collectionName === 'chilledWater2' && col === 'Date' ? (
+                          {collectionName === 'chilledWater1' && col === 'Day' ? (
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                               <DatePicker
                                 value={rows[rowIndex]?.[col] || null}
@@ -291,7 +291,8 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                                 renderInput={(params) => <TextField {...params} />}
                               />
                             </LocalizationProvider>
-                          ) : (
+                            ) :
+                              (
                             <TextField
                               value={rows[rowIndex]?.[col] || ''}
                               onChange={(e) => handleChange(e, rowIndex, col)}
@@ -431,39 +432,58 @@ const Userform = () => {
     await setDoc(additionalDataDoc, { data: additionalTableData });
   };
 
-  const handleClearAllData = () => {
-    setIsLoading(true); 
+  const handleClearAllData = async () => {
+    setIsLoading(true);
+  
     try {
+      // Clear data from Firebase
+      await clearCollectionData('condenserWater1');
+      await clearCollectionData('chilledWater1');
+      await clearCollectionData('condenserChemicals1');
+      await clearCollectionData('coolingTowerChemicals1');
+  
+      // Clear local state
       setCondenserWaterData(condenserWaterLabels.map(label => ({})));
       setChilledWaterData(chilledWaterLabels.map(label => ({})));
       setCondenserChemicalsData(condenserChemicalsLabels.map(label => ({})));
       setCoolingTowerChemicalsData(coolingTowerChemicalsLabels.map(label => ({})));
       setAdditionalTableData(additionalTableData.map(item => ({ ...item, value: '' })));
-
-      toast.success('Data cleared successfully!'); // Use toast.success
+  
+      toast.success('Data cleared successfully!');
     } catch (error) {
       console.error('Error clearing data:', error);
-      toast.error('Error clearing data. Please try again.'); // Use toast.error
+      toast.error('Error clearing data. Please try again.');
     } finally {
       setIsLoading(false);
     }
-
-
   };
-
+  const clearCollectionData = async (collectionName) => {
+    try {
+      const querySnapshot = await getDocs(collection(db, collectionName));
+      const batch = writeBatch(db);
+      querySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error(`Error   
+   clearing data from ${collectionName}:`, error);
+      // You might want to re-throw the error here or handle it in a more specific way
+    }
+  }
   const updateData = (collectionName, data) => {
     switch (collectionName) {
-      case 'condenserWater2':
+      case 'condenserWater1':
         setCondenserWaterData(data);
-        console.log('condenserWater2', data);
+        console.log('condenserWater1', data);
         break;
-      case 'chilledWater2':
+      case 'chilledWater1':
         setChilledWaterData(data);
         break;
-      case 'condenserChemicals2':
+      case 'condenserChemicals1':
         setCondenserChemicalsData(data);
         break;
-      case 'coolingTowerChemicals2':
+      case 'coolingTowerChemicals1':
         setCoolingTowerChemicalsData(data);
         break;
       default:
@@ -477,12 +497,12 @@ const Userform = () => {
     try {
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
         ...item,
-        id: item.id || doc(collection(db, 'chilledWater2')).id  // Use existing ID or generate a new one
+        id: item.id || doc(collection(db, 'chilledWater1')).id  // Use existing ID or generate a new one
       }));
-      await handleSaveData('condenserWater2', condenserWaterData, condenserWaterLabels, plantName);
-      await handleSaveData('chilledWater2', chilledWaterDataWithId, chilledWaterLabels, plantName); // Pass as array
-      await handleSaveData('condenserChemicals2', condenserChemicalsData, condenserChemicalsLabels, plantName);
-      await handleSaveData('coolingTowerChemicals2', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
+      await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
+      await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName); // Pass as array
+      await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
+      await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
       await handleSaveAdditionalTable();
       await handleSaveNotes();
 
@@ -619,7 +639,7 @@ const Userform = () => {
         </Box>
         <TabPanel value={tabIndex} index={0}>
           <TableComponent
-            collectionName="condenserWater2"
+            collectionName="condenserWater1"
             rowLabels={condenserWaterLabels}
             columnLabels={condenserWaterColumns}
             updateData={updateData}
@@ -627,7 +647,7 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           <TableComponent
-            collectionName="chilledWater2"
+            collectionName="chilledWater1"
             rowLabels={chilledWaterLabels}
             columnLabels={chilledWaterColumns}
             updateData={updateData}
@@ -635,7 +655,7 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
           <TableComponent
-            collectionName="condenserChemicals2"
+            collectionName="condenserChemicals1"
             rowLabels={condenserChemicalsLabels}
             columnLabels={condenserChemicalsColumns}
             updateData={updateData}
@@ -669,7 +689,7 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={3}>
           <TableComponent
-            collectionName="coolingTowerChemicals2"
+            collectionName="coolingTowerChemicals1"
             rowLabels={coolingTowerChemicalsLabels}
             columnLabels={coolingTowerChemicalsColumns}
             updateData={updateData}

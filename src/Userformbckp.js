@@ -575,10 +575,7 @@ const Userform = () => {
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
   const coolingTowerChemicalsColumns = ['Available empty Jerry Cans in plants (06-11-2022)'];
-  const coolingTowerChemicalsDefaultRows = coolingTowerChemicalsLabels.map(label => ({
-    'Product Name': label,
-    'Available empty Jerry Cans in plants (06-11-2022)': ''
-  }));
+
 
   return (
     <ThemeProvider theme={theme}>

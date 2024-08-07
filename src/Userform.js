@@ -121,7 +121,7 @@ const Userform = () => {
   const handleDateChange = (date) => {
     const newWeekStart = dayjs(date).startOf('week');
     setWeekCommencing(newWeekStart);
-    setFormattedWeekStart(newWeekStart.format('DD-MM-YYYY'));
+    setFormattedWeekStart(newWeekStart.format('DD/MM/YYYY'));
   };
 
   const handleTabChange = (event, newIndex) => {
@@ -297,7 +297,11 @@ const Userform = () => {
           </Grid>
           <Grid item xs={12} sm={4} md={3} marginTop={3}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker  inputFormat="DD/MM/YYYY"    value={dayjs(weekCommencing)}   views={['year', 'month', 'day']} value={weekCommencing} onChange={handleDateChange} label="Select Week" renderInput={(params) => <TextField {...params} fullWidth />} />
+              <DatePicker inputFormat="DD/MM/YYYY" 
+                views={['year', 'month', 'day']}
+                value={weekCommencing} onChange={handleDateChange}
+                label="Select Week"
+                renderInput={(params) => <TextField {...params} fullWidth />} />
             </LocalizationProvider>
           </Grid>
           <Chip label="Plant Name: AD-001" color="primary" size="small" sx={{ mt: 0.5 }} />

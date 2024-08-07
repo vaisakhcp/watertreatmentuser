@@ -18,6 +18,7 @@ import CondenserChemicalsComponent from './CondenserChemicalsComponent';
 import CoolingTowerChemicalsComponent from './CoolingTowerChemicalsComponent';
 import NotesComponent from './NotesComponent';
 import dayjs from 'dayjs';
+import SignaturePad from 'react-signature-canvas';
 
 const theme = createTheme({
   palette: {
@@ -107,6 +108,7 @@ const Userform = () => {
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
+  const [currentComponent, setCurrentComponent] = useState('');
   const sigPadRef = useRef(null);
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -122,13 +124,19 @@ const Userform = () => {
     setTabIndex(newIndex);
   };
 
-  const handleOpenSignatureModal = () => {
+  const handleOpenSignatureModal = (component) => {
+    setCurrentComponent(component);
     setOpenSignatureModal(true);
   };
 
   const handleSign = async () => {
     const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
     setNoteSignature(signatureDataUrl);
+
+    // Save the signature to Firebase
+    const docRef = doc(db, currentComponent, 'signature');
+    await setDoc(docRef, { signature: signatureDataUrl });
+
     setOpenSignatureModal(false);
   };
 
@@ -280,7 +288,11 @@ const Userform = () => {
           </Tabs>
         </Box>
         <TabPanel value={tabIndex} index={0}>
-          <CondenserWaterComponent updateData={updateData} />
+          <CondenserWaterComponent
+            updateData={updateData}
+            handleOpenSignatureModal={handleOpenSignatureModal}
+            noteSignature={noteSignature}
+          />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           <ChilledWaterComponent
@@ -301,7 +313,11 @@ const Userform = () => {
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={3}>
-          <CoolingTowerChemicalsComponent updateData={updateData} />
+          <CoolingTowerChemicalsComponent
+            updateData={updateData}
+            handleOpenSignatureModal={handleOpenSignatureModal}
+            noteSignature={noteSignature}
+          />
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
           <NotesComponent
@@ -357,6 +373,43 @@ const Userform = () => {
           </Typography>
           <Typography variant="body1" color="textSecondary">Your data has been successfully saved.</Typography>
           <Button variant="contained" color="primary" sx={{ mt: 3 }} onClick={() => setIsOverlayModalOpen(false)}>Close</Button>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={openSignatureModal}
+        onClose={() => setOpenSignatureModal(false)}
+        aria-labelledby="signature-modal-title"
+        aria-describedby="signature-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: 600,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography id="signature-modal-title" variant="h6" component="h2" gutterBottom>
+            Signature
+          </Typography>
+          <Box sx={{ width: '100%', height: 200, border: '1px solid #000' }}>
+            <SignaturePad ref={sigPadRef} canvasProps={{ style: { width: '100%', height: '100%' } }} />
+          </Box>
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <Button variant="contained" color="primary" onClick={handleSign}>
+              Sign
+            </Button>
+          </Box>
         </Box>
       </Modal>
 

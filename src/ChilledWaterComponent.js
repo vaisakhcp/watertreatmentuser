@@ -48,7 +48,7 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
             cursor: 'pointer',
             height: '50px',
           }}
-          onClick={handleOpenSignatureModal}
+          onClick={() => handleOpenSignatureModal('chilledWater1')}
         >
           {noteSignature ? (
             <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />

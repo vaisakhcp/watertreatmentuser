@@ -6,7 +6,7 @@ import {
   List, ListItem, ListItemText, IconButton, Divider, Chip, Fab, CircularProgress, Backdrop
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import { collection, getDocs, setDoc, doc,writeBatch } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import logo from './logo.png';
@@ -18,7 +18,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'; // Use dayjs adapter
 
-import dayjs from 'dayjs'; // Import   
+import dayjs from 'dayjs'; // Import   
 
 const theme = createTheme({
   palette: {
@@ -466,7 +466,7 @@ const Userform = () => {
       });
       await batch.commit();
     } catch (error) {
-      console.error(`Error   
+      console.error(`Error   
    clearing data from ${collectionName}:`, error);
       // You might want to re-throw the error here or handle it in a more specific way
     }
@@ -490,8 +490,8 @@ const Userform = () => {
         break;
     }
   };
-
-  const handleSaveAllData = async () => {
+  const [ isOverlayModalOpen, setIsOverlayModalOpen] = React.useState(false)
+  const handleSaveAllData = async (params) => {
     setIsLoading(true);
     const plantName = "AD-008"; // Plant name
     try {
@@ -512,6 +512,10 @@ const Userform = () => {
       toast.error('Error submitting report. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+
+    if (params === 'exit') {
+      setIsOverlayModalOpen(true);
     }
    
   };
@@ -652,6 +656,32 @@ const Userform = () => {
             columnLabels={chilledWaterColumns}
             updateData={updateData}
           />
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
+            <TextField
+              label="Name"
+              value={technicianName}
+              onChange={(e) => setTechnicianName(e.target.value)}
+              sx={{ flex: 1 }}
+            />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                border: '1px solid lightgrey',
+                cursor: 'pointer',
+                height: '50px',
+              }}
+              onClick={handleOpenSignatureModal}
+            >
+              {noteSignature ? (
+                <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+              ) : (
+                'Sign'
+              )}
+            </Box>
+          </Box>
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
           <TableComponent
@@ -659,6 +689,7 @@ const Userform = () => {
             rowLabels={condenserChemicalsLabels}
             columnLabels={condenserChemicalsColumns}
             updateData={updateData}
+            defaultRows={condenserChemicalsDefaultRows}
           />
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
             <TextField
@@ -781,18 +812,21 @@ const Userform = () => {
           </Box>
         </TabPanel>
       </Container>
-      <Fab
-        color="primary"
-        aria-label="save"
-        onClick={handleSaveAllData}
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-        }}
-      >
-        <SaveIcon />
-      </Fab>
+      <Button
+  variant="contained"
+  color="primary"
+  startIcon={<SaveIcon />}
+  onClick={()=>handleSaveAllData('exit')}
+  sx={{
+    position: 'fixed',
+    bottom: 16,
+    right: 16,
+    borderRadius: '4px', // Optional: customize border radius
+    padding: '8px 16px', // Optional: customize padding
+  }}
+>
+  Save and Exit
+</Button>
       <Modal
         open={openSignatureModal}
         onClose={() => setOpenSignatureModal(false)}
@@ -830,6 +864,48 @@ const Userform = () => {
           </Box>
         </Box>
       </Modal>
+      <Modal
+  open={isOverlayModalOpen}
+  onClose={() => setIsOverlayModalOpen(false)}
+  aria-labelledby="overlay-modal-title"
+  aria-describedby="overlay-modal-description"
+>
+  <Box
+    sx={{
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '90%',
+      maxWidth: 400,
+      bgcolor: 'background.paper',
+      borderRadius: '10px',
+      boxShadow: 24,
+      p: 4,
+      textAlign: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}
+  >
+    <img src={logo} alt="Logo" style={{ width: '120px', marginBottom: '20px' }} />
+    <Typography id="overlay-modal-title" variant="h5" component="h2" gutterBottom>
+      Thank You for Visiting Tabreed
+    </Typography>
+    <Typography variant="body1" color="textSecondary">
+      Your data has been successfully saved.
+    </Typography>
+    <Button
+      variant="contained"
+      color="primary"
+      sx={{ mt: 3 }}
+      onClick={() => setIsOverlayModalOpen(false)}
+    >
+      Close
+    </Button>
+  </Box>
+</Modal>
+
       <ToastContainer /> 
     </ThemeProvider>
   );

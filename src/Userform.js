@@ -3,7 +3,7 @@ import {
   Container, Box, Tabs, Tab, Paper, TextField, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   createTheme, ThemeProvider, Modal, Typography, Grid, useMediaQuery,
-  List, ListItem, ListItemText, IconButton, Divider, Chip, Fab
+  List, ListItem, ListItemText, IconButton, Divider, Chip, Fab, CircularProgress, Backdrop
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
@@ -14,7 +14,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -345,6 +346,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 };
 
 const Userform = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [reportDate, setReportDate] = useState(new Date());
   const [revisionDate, setRevisionDate] = useState(new Date());
@@ -402,7 +404,6 @@ const Userform = () => {
   const handleSaveNotes = async () => {
     const notesDoc = doc(db, 'notes1', 'noteList');
     await setDoc(notesDoc, { notes: noteList });
-    alert('Notes saved successfully!');
   };
 
   const handleAdditionalTableChange = (e, index) => {
@@ -414,15 +415,26 @@ const Userform = () => {
   const handleSaveAdditionalTable = async () => {
     const additionalDataDoc = doc(db, 'additionalTable', 'additionalTableData');
     await setDoc(additionalDataDoc, { data: additionalTableData });
-    alert('Additional data saved successfully!');
   };
 
   const handleClearAllData = () => {
-    setCondenserWaterData(condenserWaterLabels.map(label => ({})));
-    setChilledWaterData(chilledWaterLabels.map(label => ({})));
-    setCondenserChemicalsData(condenserChemicalsLabels.map(label => ({})));
-    setCoolingTowerChemicalsData(coolingTowerChemicalsLabels.map(label => ({})));
-    setAdditionalTableData(additionalTableData.map(item => ({ ...item, value: '' })));
+    setIsLoading(true); 
+    try {
+      setCondenserWaterData(condenserWaterLabels.map(label => ({})));
+      setChilledWaterData(chilledWaterLabels.map(label => ({})));
+      setCondenserChemicalsData(condenserChemicalsLabels.map(label => ({})));
+      setCoolingTowerChemicalsData(coolingTowerChemicalsLabels.map(label => ({})));
+      setAdditionalTableData(additionalTableData.map(item => ({ ...item, value: '' })));
+
+      toast.success('Data cleared successfully!'); // Use toast.success
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      toast.error('Error clearing data. Please try again.'); // Use toast.error
+    } finally {
+      setIsLoading(false);
+    }
+
+
   };
 
   const updateData = (collectionName, data) => {
@@ -447,14 +459,24 @@ const Userform = () => {
   };
 
   const handleSaveAllData = async () => {
+    setIsLoading(true);
     const plantName = "AD-009"; // Plant name
+    try {
+      await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
+      await handleSaveData('chilledWater1', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
+      await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
+      await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
+      await handleSaveAdditionalTable();
+      await handleSaveNotes();
 
-    await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
-    await handleSaveData('chilledWater1', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
-    await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
-    await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
-    await handleSaveAdditionalTable();
-    await handleSaveNotes();
+      toast.success('Report submitted successfully!'); 
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      toast.error('Error submitting report. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+   
   };
 
   const handleSaveData = async (collectionName, data, rowLabels) => {
@@ -550,6 +572,12 @@ const Userform = () => {
 
   return (
     <ThemeProvider theme={theme}>
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Container component={Paper} sx={{ p: 3, mt: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <img src={logo} alt="Logo" style={{ width: isMobile ? '50%' : '150px', marginBottom: '5px' }} />
@@ -577,6 +605,9 @@ const Userform = () => {
         <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3 }}>
           <Button variant="contained" color="primary" onClick={handleSaveAllData}>
             Submit report
+          </Button>
+          <Button variant="contained" color="error" onClick={handleClearAllData}>
+            Clear Data
           </Button>
         </Box>
 
@@ -782,6 +813,7 @@ const Userform = () => {
           </Box>
         </Box>
       </Modal>
+      <ToastContainer /> 
     </ThemeProvider>
   );
 };

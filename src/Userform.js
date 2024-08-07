@@ -111,14 +111,16 @@ const Userform = () => {
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const [currentComponent, setCurrentComponent] = useState('');
   const sigPadRef = useRef(null);
-
+  const [formattedWeekStart, setFormattedWeekStart] = useState(weekCommencing.format('DD-MM-YYYY'));
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const weekStart = weekCommencing.startOf('week').format('Do MMMM YYYY');
   const weekEnd = weekCommencing.endOf('week').format('Do MMMM YYYY');
 
   const handleDateChange = (date) => {
-    setWeekCommencing(dayjs(date).startOf('week'));
+    const newWeekStart = dayjs(date).startOf('week');
+    setWeekCommencing(newWeekStart);
+    setFormattedWeekStart(newWeekStart.format('DD-MM-YYYY'));
   };
 
   const handleTabChange = (event, newIndex) => {
@@ -321,6 +323,7 @@ const Userform = () => {
         <TabPanel value={tabIndex} index={3}>
           <CoolingTowerChemicalsComponent
             updateData={updateData}
+            columnLabels={[`Available empty Jerry Cans in plants (${formattedWeekStart})`]}
             handleOpenSignatureModal={handleOpenSignatureModal}
             noteSignature={condenserChemicalsSignature}
           />

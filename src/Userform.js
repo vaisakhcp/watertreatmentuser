@@ -246,8 +246,8 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                  {collectionName === 'condenserWater' ? 'Date' : (
-                    collectionName === 'condenserChemicals' || collectionName === 'coolingTowerChemicals' ? 'Stocks' : ''
+                  {collectionName === 'condenserWater1' ? 'Date' : (
+                    collectionName === 'condenserChemicals1' || collectionName === 'coolingTowerChemicals1' ? 'Stocks' : ''
                   )}
                 </TableCell>
                 {columnLabels.map((col, index) => (
@@ -278,7 +278,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                         </TableCell>
                       ) : (
                         <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                          {collectionName === 'chilledWater' && col === 'Date' ? (
+                          {collectionName === 'chilledWater1' && col === 'Date' ? (
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                               <DatePicker
                                 value={rows[rowIndex]?.[col] || null}
@@ -358,7 +358,7 @@ const Userform = () => {
 
   useEffect(() => {
     const fetchNotes = async () => {
-      const notesSnapshot = await getDocs(collection(db, 'notes'));
+      const notesSnapshot = await getDocs(collection(db, 'notes1'));
       const notesData = notesSnapshot.docs.map(doc => doc.data().notes);
       setNoteList(notesData.flat()); // Flatten the array if notes is an array of arrays
     };
@@ -368,7 +368,7 @@ const Userform = () => {
 
   const [noteInput, setNoteInput] = useState('');
   const [condenserWaterData, setCondenserWaterData] = useState([]);
-  const [chilledWaterData, setChilledWaterData] = useState({});
+  const [chilledWaterData, setChilledWaterData] = useState([]);
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [additionalTableData, setAdditionalTableData] = useState([
@@ -400,7 +400,7 @@ const Userform = () => {
   };
 
   const handleSaveNotes = async () => {
-    const notesDoc = doc(db, 'notes', 'noteList');
+    const notesDoc = doc(db, 'notes1', 'noteList');
     await setDoc(notesDoc, { notes: noteList });
     alert('Notes saved successfully!');
   };
@@ -427,19 +427,18 @@ const Userform = () => {
 
   const updateData = (collectionName, data) => {
     switch (collectionName) {
-      case 'condenserWater':
+      case 'condenserWater1':
         setCondenserWaterData(data);
-        console.log('condenserWater', data);
-
+        console.log('condenserWater1', data);
         break;
-      case 'chilledWater':
-
+      case 'chilledWater1':
+       console.log('chilledda',data)
         setChilledWaterData(data);
         break;
-      case 'condenserChemicals':
+      case 'condenserChemicals1':
         setCondenserChemicalsData(data);
         break;
-      case 'coolingTowerChemicals':
+      case 'coolingTowerChemicals1':
         setCoolingTowerChemicalsData(data);
         break;
       default:
@@ -450,49 +449,57 @@ const Userform = () => {
   const handleSaveAllData = async () => {
     const plantName = "AD-009"; // Plant name
 
-    await handleSaveData('condenserWater', condenserWaterData, condenserWaterLabels, plantName);
-    await handleSaveData('chilledWater', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
-    await handleSaveData('condenserChemicals', condenserChemicalsData, condenserChemicalsLabels, plantName);
-    await handleSaveData('coolingTowerChemicals', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
+    await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
+    await handleSaveData('chilledWater1', chilledWaterData, chilledWaterLabels, plantName); // Pass as array
+    await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
+    await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
     await handleSaveAdditionalTable();
     await handleSaveNotes();
   };
 
-  const handleSaveData = async (collectionName, data, rowLabels, plantName) => {
-    console.log('coo',collectionName)
-    console.log('data',data)
-    if (!Array.isArray(data)) {
+  const handleSaveData = async (collectionName, data, rowLabels) => {
+    console.log('collectionName',collectionName)
+    console.log('data',JSON.stringify(data))
+      if (!Array.isArray(data)) {
       data = [data]; // Convert to an array if it is not
     }
 
-    const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
-    const plantDocRef = doc(db, collectionName, plantName);
-    try {
-      const docSnap = await getDoc(plantDocRef);
-
-      if (docSnap.exists()) {
-        // Plant document exists, update it
-        const existingData = docSnap.data();
-        const updatedData = rowLabels.reduce((acc, label, index) => {
-          acc[label] = data[index] || {};  // Handle cases where data might be missing
-          return acc;
-        }, existingData);
-        
-        await setDoc(plantDocRef, updatedData, { merge: true });
-      } else {
-        // Plant document doesn't exist, create it with initial data
-        const initialData = rowLabels.reduce((acc, label, index) => {
-          acc[label] = data[index] || {};
-          return acc;
-        }, {});
-        
-        await setDoc(plantDocRef, initialData);
-      }
-      
-      console.log(`Data for ${plantName} saved to ${collectionName} successfully`);
-    } catch (error) {
-      console.error(`Error saving data to ${collectionName} for ${plantName}:`, error);
+    for (const row of data) {
+      const rowDoc = doc(db, collectionName, row.id || rowLabels[data.indexOf(row)]);
+      await setDoc(rowDoc, row);
     }
+    // if (!Array.isArray(data)) {
+    //   data = [data]; // Convert to an array if it is not
+    // }
+
+    // const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+    // const plantDocRef = doc(db, collectionName, plantName);
+    // try {
+    //   const docSnap = await getDoc(plantDocRef);
+
+    //   if (docSnap.exists()) {
+    //     // Plant document exists, update it
+    //     const existingData = docSnap.data();
+    //     const updatedData = rowLabels.reduce((acc, label, index) => {
+    //       acc[label] = data[index] || {};  // Handle cases where data might be missing
+    //       return acc;
+    //     }, existingData);
+        
+    //     await setDoc(plantDocRef, updatedData, { merge: true });
+    //   } else {
+    //     // Plant document doesn't exist, create it with initial data
+    //     const initialData = rowLabels.reduce((acc, label, index) => {
+    //       acc[label] = data[index] || {};
+    //       return acc;
+    //     }, {});
+        
+    //     await setDoc(plantDocRef, initialData);
+    //   }
+      
+    //   console.log(`Data for ${plantName} saved to ${collectionName} successfully`);
+    // } catch (error) {
+    //   console.error(`Error saving data to ${collectionName} for ${plantName}:`, error);
+    // }
   };
 
   const handleOpenSignatureModal = () => {
@@ -585,28 +592,30 @@ const Userform = () => {
           </Tabs>
         </Box>
         <TabPanel value={tabIndex} index={0}>
+          {JSON.stringify(condenserWaterData)}
           <TableComponent
-            collectionName="condenserWater"
+            collectionName="condenserWater1"
             rowLabels={condenserWaterLabels}
             columnLabels={condenserWaterColumns}
             updateData={updateData}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
+          {JSON.stringify(chilledWaterData)}
           <TableComponent
-            collectionName="chilledWater"
+            collectionName="chilledWater1"
             rowLabels={chilledWaterLabels}
             columnLabels={chilledWaterColumns}
             updateData={updateData}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
+          {JSON.stringify(condenserChemicalsData)}
           <TableComponent
-            collectionName="condenserChemicals"
+            collectionName="condenserChemicals1"
             rowLabels={condenserChemicalsLabels}
-            columnLabels={condenserWaterColumns}
+            columnLabels={condenserChemicalsColumns}
             updateData={updateData}
-
           />
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
             <TextField
@@ -636,11 +645,11 @@ const Userform = () => {
           </Box>
         </TabPanel>
         <TabPanel value={tabIndex} index={3}>
+          {JSON.stringify(coolingTowerChemicalsData)}
           <TableComponent
-            collectionName="coolingTowerChemicals"
+            collectionName="coolingTowerChemicals1"
             rowLabels={coolingTowerChemicalsLabels}
             columnLabels={coolingTowerChemicalsColumns}
-            defaultRows={coolingTowerChemicalsDefaultRows}
             updateData={updateData}
           />
           <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>

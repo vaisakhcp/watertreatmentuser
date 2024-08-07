@@ -19,6 +19,7 @@ import CoolingTowerChemicalsComponent from './CoolingTowerChemicalsComponent';
 import NotesComponent from './NotesComponent';
 import dayjs from 'dayjs';
 import SignaturePad from 'react-signature-canvas';
+import 'dayjs/locale/en-gb'; 
 
 const theme = createTheme({
   palette: {
@@ -169,7 +170,7 @@ const Userform = () => {
 
   const handleSaveAllData = async (params) => {
     setIsLoading(true);
-    const plantName = "AD-008";
+    const plantName = "AD-001";
     try {
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
         ...item,
@@ -296,10 +297,10 @@ const Userform = () => {
           </Grid>
           <Grid item xs={12} sm={4} md={3} marginTop={3}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker value={weekCommencing} onChange={handleDateChange} label="Select Week" renderInput={(params) => <TextField {...params} fullWidth />} />
+              <DatePicker  inputFormat="DD/MM/YYYY"    value={dayjs(weekCommencing)}   views={['year', 'month', 'day']} value={weekCommencing} onChange={handleDateChange} label="Select Week" renderInput={(params) => <TextField {...params} fullWidth />} />
             </LocalizationProvider>
           </Grid>
-          <Chip label="Plant Name: AD-008" color="primary" size="small" sx={{ mt: 0.5 }} />
+          <Chip label="Plant Name: AD-001" color="primary" size="small" sx={{ mt: 0.5 }} />
           <Box sx={{ mt: 1 }}>
             <Grid container spacing={1} alignItems="center">
               <Grid item xs={12} sm={4}><Typography variant="subtitle2">Operations Department: TOM-OPS-FM-2009</Typography></Grid>

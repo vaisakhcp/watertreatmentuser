@@ -433,7 +433,6 @@ const Userform = () => {
 
         break;
       case 'chilledWater':
-        console.log('data', data);
 
         setChilledWaterData(data);
         break;
@@ -460,31 +459,39 @@ const Userform = () => {
   };
 
   const handleSaveData = async (collectionName, data, rowLabels, plantName) => {
+    console.log('coo',collectionName)
+    console.log('data',data)
     if (!Array.isArray(data)) {
       data = [data]; // Convert to an array if it is not
     }
 
     const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+    const plantDocRef = doc(db, collectionName, plantName);
+    try {
+      const docSnap = await getDoc(plantDocRef);
 
-    for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
-      const row = data[rowIndex];
-      const docId = `${currentDate}_${plantName}_${rowLabels[rowIndex]}`;
-      const rowDocRef = doc(db, collectionName, docId);
-
-      try {
-        const docSnap = await getDoc(rowDocRef);
-
-        if (docSnap.exists()) {
-          // Update existing document
-          await setDoc(rowDocRef, { ...docSnap.data(), ...row }, { merge: true });
-        } else {
-          // Create a new document
-          await setDoc(rowDocRef, row);
-        }
-      } catch (error) {
-        console.error(`Error saving data to ${collectionName}:`, error);
-        // Implement error handling here, e.g., show error to the user
+      if (docSnap.exists()) {
+        // Plant document exists, update it
+        const existingData = docSnap.data();
+        const updatedData = rowLabels.reduce((acc, label, index) => {
+          acc[label] = data[index] || {};  // Handle cases where data might be missing
+          return acc;
+        }, existingData);
+        
+        await setDoc(plantDocRef, updatedData, { merge: true });
+      } else {
+        // Plant document doesn't exist, create it with initial data
+        const initialData = rowLabels.reduce((acc, label, index) => {
+          acc[label] = data[index] || {};
+          return acc;
+        }, {});
+        
+        await setDoc(plantDocRef, initialData);
       }
+      
+      console.log(`Data for ${plantName} saved to ${collectionName} successfully`);
+    } catch (error) {
+      console.error(`Error saving data to ${collectionName} for ${plantName}:`, error);
     }
   };
 
@@ -597,10 +604,9 @@ const Userform = () => {
           <TableComponent
             collectionName="condenserChemicals"
             rowLabels={condenserChemicalsLabels}
-            columnLabels={condenserChemicalsColumns}
-            defaultRows={condenserChemicalsDefaultRows}
+            columnLabels={condenserWaterColumns}
             updateData={updateData}
-            calculateClosingStock
+
           />
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
             <TextField

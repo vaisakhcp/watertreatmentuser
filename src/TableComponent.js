@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Table, TableBody, TableCell,useMediaQuery, TableContainer, TableHead, TableRow, Paper, TextField, Box, Modal, Button, Typography, List, ListItem, Divider } from '@mui/material';
-import { getDocs, collection, setDoc, doc } from 'firebase/firestore';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, TextField, Button, Modal, Typography, useMediaQuery, List, ListItem,
+  Divider
+} from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-
-const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, updateData, calculateClosingStock }) => {
+const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, updateData, calculateClosingStock, additionalTableData, handleAdditionalTableChange }) => {
   const [rows, setRows] = useState(defaultRows || []);
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const [currentRow, setCurrentRow] = useState(null);
@@ -19,13 +22,26 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
       try {
         const querySnapshot = await getDocs(collection(db, collectionName));
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setRows(data);
+        const flattenedData = data.map(item => {
+          const flattenedItem = {};
+          Object.keys(item).forEach(key => {
+            if (typeof item[key] === 'object') {
+              Object.keys(item[key]).forEach(subKey => {
+                flattenedItem[subKey] = item[key][subKey];
+              });
+            } else {
+              flattenedItem[key] = item[key];
+            }
+          });
+          return flattenedItem;
+        });
+        setRows(flattenedData);
       } catch (error) {
         console.error(`Error fetching data for ${collectionName}:`, error);
       }
     };
     fetchData();
-  }, [collectionName]);
+  }, [collectionName, defaultRows]);
 
   useEffect(() => {
     updateData(collectionName, rows);
@@ -68,7 +84,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
 
   const handleDateChange = (date, rowIndex) => {
     const newRows = [...rows];
-    newRows[rowIndex]['Day'] = date; // Update the 'Day' field in the row data
+    newRows[rowIndex]['Day'] = date;
     setRows(newRows);
   };
 
@@ -172,6 +188,40 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                     ))}
                   </TableRow>
                 </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+      {collectionName === 'coolingTowerChemicals1' && additionalTableData && (
+        <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
+          <Table>
+            <TableBody>
+              {additionalTableData.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell>{item.label}</TableCell>
+                  <TableCell>
+                    {index < 2 ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body1">10<sup></sup></Typography>
+                        <TextField
+                          value={item.value}
+                          onChange={(e) => handleAdditionalTableChange(e, index)}
+                          sx={{ width: '56px', ml: 1 }}
+                          InputProps={{
+                            inputProps: { style: { textAlign: 'center' } }
+                          }}
+                        />
+                      </Box>
+                    ) : (
+                      <TextField
+                        value={item.value}
+                        onChange={(e) => handleAdditionalTableChange(e, index)}
+                        fullWidth
+                      />
+                    )}
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>

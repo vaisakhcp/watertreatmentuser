@@ -101,7 +101,8 @@ const Userform = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [technicianNameChilled, setTechnicianNameChilled] = useState('');
   const [technicianNameChemicals, setTechnicianNameChemicals] = useState('');
-  const [noteSignature, setNoteSignature] = useState('');
+  const [chilledWaterSignature, setChilledWaterSignature] = useState('');
+  const [condenserChemicalsSignature, setCondenserChemicalsSignature] = useState('');
   const [isOverlayModalOpen, setIsOverlayModalOpen] = useState(false);
   const [condenserWaterData, setCondenserWaterData] = useState([]);
   const [chilledWaterData, setChilledWaterData] = useState([]);
@@ -131,7 +132,12 @@ const Userform = () => {
 
   const handleSign = async () => {
     const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-    setNoteSignature(signatureDataUrl);
+    
+    if (currentComponent === 'chilledWater1') {
+      setChilledWaterSignature(signatureDataUrl);
+    } else if (currentComponent === 'condenserChemicals1') {
+      setCondenserChemicalsSignature(signatureDataUrl);
+    }
 
     // Save the signature to Firebase
     const docRef = doc(db, currentComponent, 'signature');
@@ -279,7 +285,7 @@ const Userform = () => {
         </Box>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabIndex} onChange={handleTabChange} centered variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
+          <Tabs value={tabIndex} onChange={handleTabChange} centered allowScrollButtonsMobile>
             <Tab label="Condenser Water" />
             <Tab label="Chilled Water" />
             <Tab label="Condenser Chemicals" />
@@ -291,7 +297,7 @@ const Userform = () => {
           <CondenserWaterComponent
             updateData={updateData}
             handleOpenSignatureModal={handleOpenSignatureModal}
-            noteSignature={noteSignature}
+            noteSignature={chilledWaterSignature}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
@@ -299,7 +305,7 @@ const Userform = () => {
             updateData={updateData}
             technicianName={technicianNameChilled}
             setTechnicianName={setTechnicianNameChilled}
-            noteSignature={noteSignature}
+            noteSignature={chilledWaterSignature}
             handleOpenSignatureModal={handleOpenSignatureModal}
           />
         </TabPanel>
@@ -308,7 +314,7 @@ const Userform = () => {
             updateData={updateData}
             technicianName={technicianNameChemicals}
             setTechnicianName={setTechnicianNameChemicals}
-            noteSignature={noteSignature}
+            noteSignature={condenserChemicalsSignature}
             handleOpenSignatureModal={handleOpenSignatureModal}
           />
         </TabPanel>
@@ -316,12 +322,12 @@ const Userform = () => {
           <CoolingTowerChemicalsComponent
             updateData={updateData}
             handleOpenSignatureModal={handleOpenSignatureModal}
-            noteSignature={noteSignature}
+            noteSignature={condenserChemicalsSignature}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
           <NotesComponent
-            noteSignature={noteSignature}
+            noteSignature={chilledWaterSignature}
             handleOpenSignatureModal={handleOpenSignatureModal}
             handleSign={handleSign}
             updateData={updateData}

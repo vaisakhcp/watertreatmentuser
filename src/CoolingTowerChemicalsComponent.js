@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, Button, Modal, Typography, IconButton,Link,Popper
+  Paper, TextField, Button, Modal, Typography, IconButton, Link, Popper
 } from '@mui/material';
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
@@ -10,6 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+
 const CoolingTowerChemicalsComponent = ({ updateData }) => {
   const [coolingTowerChemicalsLabels, setCoolingTowerChemicalsLabels] = useState([
     { label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
@@ -38,6 +39,8 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
   const [openDatePicker, setOpenDatePicker] = useState(false);
   const [selectedDateIndex, setSelectedDateIndex] = useState(null);
   const [selectedDates, setSelectedDates] = useState({});
+  const [openAddProductModal, setOpenAddProductModal] = useState(false);
+  const [newProduct, setNewProduct] = useState({ label: '', value: '', action: '' });
 
   const handleOpenDatePicker = (event, index) => {
     event.preventDefault();
@@ -51,6 +54,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     setSelectedDates(updatedDates);
     setOpenDatePicker(false);
   };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -86,15 +90,13 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     // Save the signature to the database
     const docRef = doc(db, 'coolingTowerChemicals1', 'signature');
     await setDoc(docRef, { signature: signatureDataUrl });
-    
   };
 
   const handleTechnichianName = async (e) => {
-    setTechnicianName(e.target.value)
+    setTechnicianName(e.target.value);
     const docRef = doc(db, 'coolingTowerChemicals1', 'technicianName');
     await setDoc(docRef, { name: e.target.value });
   };
-
 
   const handleLabelChange = (index, label) => {
     const updatedLabels = [...coolingTowerChemicalsLabels];
@@ -115,13 +117,25 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
   };
 
   const handleAddRow = () => {
-    setCoolingTowerChemicalsLabels([...coolingTowerChemicalsLabels, { label: '', value: '', action: '' }]);
+    setOpenAddProductModal(true);
   };
 
-  const handleDeleteRow = (index) => {
-    const updatedLabels = [...coolingTowerChemicalsLabels];
-    updatedLabels.splice(index, 1);
+  const handleAddProduct = async () => {
+    const updatedLabels = [...coolingTowerChemicalsLabels, newProduct];
     setCoolingTowerChemicalsLabels(updatedLabels);
+
+    await setDoc(doc(db, 'coolingTowerChemicals1', `product-${updatedLabels.length}`), newProduct);
+
+    setNewProduct({ label: '', value: '', action: '' });
+    setOpenAddProductModal(false);
+  };
+
+  const handleDeleteRow = async (index) => {
+    const updatedLabels = [...coolingTowerChemicalsLabels];
+    const deletedItem = updatedLabels.splice(index, 1);
+    setCoolingTowerChemicalsLabels(updatedLabels);
+
+    await setDoc(doc(db, 'coolingTowerChemicals1', `product-${index + 1}`), deletedItem);
   };
 
   const handleAdditionalTableChange = (e, index) => {
@@ -154,11 +168,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
             {coolingTowerChemicalsLabels.map((item, rowIndex) => (
               <TableRow key={rowIndex}>
                 <TableCell sx={{ padding: '8px' }}>
-                  <TextField
-                    value={item.label}
-                    onChange={(e) => handleLabelChange(rowIndex, e.target.value)}
-                    fullWidth
-                  />
+                  <Typography>{item.label}</Typography>
                 </TableCell>
                 <TableCell sx={{ padding: '8px' }}>
                   <TextField
@@ -201,31 +211,31 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
           <TableBody>
             {additionalDataTable.map((item, index) => (
               <TableRow key={index}>
-                  <TableCell>
-                {item.label}
+                <TableCell>
+                  {item.label}
                   {item.type === 'date' && (
-                     <Link href="#" onClick={(event) => handleOpenDatePicker(event, index)}>
-                     {selectedDates[index] ? selectedDates[index].toLocaleDateString() : 'Select Date'}
-                   </Link>
+                    <Link href="#" onClick={(event) => handleOpenDatePicker(event, index)}>
+                      {selectedDates[index] ? selectedDates[index].toLocaleDateString() : 'Select Date'}
+                    </Link>
                   )}
-                  </TableCell>
+                </TableCell>
                 <TableCell>
                   {item.type === 'date' ? (
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1">10<sup></sup></Typography>
-                    <TextField
-                      value={item.value}
-                      onChange={(e) => {
-                        const newTableData = [...additionalDataTable];
-                        newTableData[index + 2].value = e.target.value;
-                        setAdditionalDataTable(newTableData);
-                      }}
-                      sx={{ width: '56px', ml: 1 }}
-                      InputProps={{
-                        inputProps: { style: { textAlign: 'center' } }
-                      }}
-                    />
-                  </Box>
+                      <Typography variant="body1">10<sup></sup></Typography>
+                      <TextField
+                        value={item.value}
+                        onChange={(e) => {
+                          const newTableData = [...additionalDataTable];
+                          newTableData[index + 2].value = e.target.value;
+                          setAdditionalDataTable(newTableData);
+                        }}
+                        sx={{ width: '56px', ml: 1 }}
+                        InputProps={{
+                          inputProps: { style: { textAlign: 'center' } }
+                        }}
+                      />
+                    </Box>
                   ) : (
                     <TextField
                       value={item.value}
@@ -236,7 +246,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
                       }}
                       fullWidth
                     />
-                  )} 
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -246,8 +256,8 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
       <Popper open={openDatePicker} anchorEl={anchorEl}>
         <Paper>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DatePicker
-              value={selectedDates} // Use the selected date state variable
+            <DatePicker
+              value={selectedDates[selectedDateIndex] || null}
               onChange={handleDateChange}
               renderInput={(params) => <TextField {...params} />}
             />
@@ -315,6 +325,58 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
               Sign
             </Button>
           </Box>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={openAddProductModal}
+        onClose={() => setOpenAddProductModal(false)}
+        aria-labelledby="add-product-modal-title"
+        aria-describedby="add-product-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: 400,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Typography id="add-product-modal-title" variant="h6" component="h2" gutterBottom>
+            Add New Product
+          </Typography>
+          <TextField
+            label="Product Label"
+            value={newProduct.label}
+            onChange={(e) => setNewProduct({ ...newProduct, label: e.target.value })}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Value"
+            value={newProduct.value}
+            onChange={(e) => setNewProduct({ ...newProduct, value: e.target.value })}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Action"
+            value={newProduct.action}
+            onChange={(e) => setNewProduct({ ...newProduct, action: e.target.value })}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <Button variant="contained" color="primary" onClick={handleAddProduct} sx={{ mt: 2 }}>
+            Add Product
+          </Button>
         </Box>
       </Modal>
     </>

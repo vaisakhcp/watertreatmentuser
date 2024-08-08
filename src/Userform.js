@@ -96,7 +96,6 @@ const TabPanel = ({ children, value, index }) => {
     </div>
   );
 };
-
 const Userform = () => {
   const [weekCommencing, setWeekCommencing] = useState(dayjs().startOf('week'));
   const [isLoading, setIsLoading] = useState(false);
@@ -181,12 +180,15 @@ const Userform = () => {
         name: technicianNameChilled,
         signature: chilledWaterSignature,
       });
+      await setDoc(doc(db, 'condenserChemicals1', 'technicianInfo'), {
+        name: technicianNameChemicals,
+        signature: condenserChemicalsSignature,
+      });
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
       await handleSaveNotes();
-      
 
       toast.success('Report submitted successfully!');
     } catch (error) {
@@ -261,6 +263,7 @@ const Userform = () => {
     'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
+
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsInitialLoading(true);
@@ -270,13 +273,13 @@ const Userform = () => {
         const chilledWaterSnapshot = await getDocs(collection(db, 'chilledWater1'));
         const condenserChemicalsSnapshot = await getDocs(collection(db, 'condenserChemicals1'));
         const coolingTowerChemicalsSnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
-  
+
         // Process and set data accordingly
         setCondenserWaterData(condenserWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setChilledWaterData(chilledWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCondenserChemicalsData(condenserChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCoolingTowerChemicalsData(coolingTowerChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-  
+
         // Fetch technician info
         const chilledWaterDocRef = doc(db, 'chilledWater1', 'technicianInfo');
         const chilledWaterDocSnap = await getDoc(chilledWaterDocRef);
@@ -285,23 +288,30 @@ const Userform = () => {
           setTechnicianNameChilled(name || '');
           setChilledWaterSignature(signature || '');
         }
+
+        const condenserChemicalsDocRef = doc(db, 'condenserChemicals1', 'technicianInfo');
+        const condenserChemicalsDocSnap = await getDoc(condenserChemicalsDocRef);
+        if (condenserChemicalsDocSnap.exists()) {
+          const { name, signature } = condenserChemicalsDocSnap.data();
+          setTechnicianNameChemicals(name || '');
+          setCondenserChemicalsSignature(signature || '');
+        }
       } catch (error) {
         console.error('Error fetching initial data:', error);
       } finally {
         setIsInitialLoading(false);
       }
     };
-  
+
     fetchInitialData();
   }, []);
-  
-  
+
   return (
     <ThemeProvider theme={theme}>
-   <Backdrop
-      sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-      open={isLoading || isInitialLoading}
-    >
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading || isInitialLoading}
+      >
         <CircularProgress color="inherit" />
       </Backdrop>
       <Container component={Paper} sx={{ p: 3, mt: 3 }}>
@@ -352,11 +362,11 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           <ChilledWaterComponent
-         updateData={updateData}
-         technicianName={technicianNameChilled}
-         setTechnicianName={setTechnicianNameChilled}
-         noteSignature={chilledWaterSignature}
-         handleOpenSignatureModal={handleOpenSignatureModal}
+            updateData={updateData}
+            technicianName={technicianNameChilled}
+            setTechnicianName={setTechnicianNameChilled}
+            noteSignature={chilledWaterSignature}
+            handleOpenSignatureModal={handleOpenSignatureModal}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>
@@ -365,6 +375,7 @@ const Userform = () => {
             technicianName={technicianNameChemicals}
             setTechnicianName={setTechnicianNameChemicals}
             noteSignature={condenserChemicalsSignature}
+            setNoteSignature={setCondenserChemicalsSignature}
             handleOpenSignatureModal={handleOpenSignatureModal}
           />
         </TabPanel>
@@ -426,9 +437,8 @@ const Userform = () => {
         >
           <img src={logo} alt="Logo" style={{ width: '120px', marginBottom: '20px' }} />
           <Typography id="overlay-modal-title" variant="h5" component="h2" gutterBottom>
-            Thank You for Visiting Tabreed
+          Your data has been successfully saved.
           </Typography>
-          <Typography variant="body1" color="textSecondary">Your data has been successfully saved.</Typography>
           <Button variant="contained" color="primary" sx={{ mt: 3 }} onClick={() => setIsOverlayModalOpen(false)}>Close</Button>
         </Box>
       </Modal>

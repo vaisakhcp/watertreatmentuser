@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, Button, Modal, Typography, useMediaQuery, List, ListItem,
-  Divider
+  Paper, TextField, Button, Modal, Typography, useMediaQuery, List, Divider
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+
 const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, updateData, calculateClosingStock, additionalTableData, handleAdditionalTableChange }) => {
   const [rows, setRows] = useState(defaultRows || []);
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
@@ -53,10 +53,10 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
       newRows[rowIndex] = {};
     }
     newRows[rowIndex][columnKey] = e.target.value;
-    if (calculateClosingStock && columnKey !== 'Closing Stock (Kg)') {
+    if (columnKey === 'Closing Stock (Kg)') {
       const openingStock = parseFloat(newRows[rowIndex]['Opening Stock (Kg)'] || 0);
-      const consumption = parseFloat(newRows[rowIndex]['Consumption (Kg)'] || 0);
-      newRows[rowIndex]['Closing Stock (Kg)'] = openingStock - consumption;
+      const closingStock = parseFloat(newRows[rowIndex]['Closing Stock (Kg)'] || 0);
+      newRows[rowIndex]['Consumption (Kg)'] = openingStock - closingStock;
     }
     setRows(newRows);
   };
@@ -105,7 +105,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                       InputProps={{ sx: { padding: 0, height: '56px' } }}
                       sx={{ flex: 2 }}
                       variant="standard"
-                      disabled={col === 'Closing Stock (Kg)'}
+                      disabled={col === 'Consumption (Kg)'}
                     />
                   </Box>
                 )
@@ -180,7 +180,7 @@ const TableComponent = ({ collectionName, rowLabels, columnLabels, defaultRows, 
                               value={rows[rowIndex]?.[col] || ''}
                               onChange={(e) => handleChange(e, rowIndex, col)}
                               InputProps={{ sx: { padding: 0, height: '56px' } }}
-                              disabled={col === 'Closing Stock (Kg)'}
+                              disabled={col === 'Consumption (Kg)'}
                             />
                           )}
                         </TableCell>

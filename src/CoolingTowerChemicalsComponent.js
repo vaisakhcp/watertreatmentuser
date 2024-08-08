@@ -9,7 +9,7 @@ import SignaturePad from 'react-signature-canvas';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-const CoolingTowerChemicalsComponent = ({ updateData }) => {
+const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [technicianName, setTechnicianName] = useState('');
   const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
@@ -28,7 +28,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
-        const data = querySnapshot.docs.map(doc => doc.data());
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (data.length > 0) {
           setCoolingTowerChemicalsLabels(data);
         }
@@ -38,6 +38,10 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    updateData('coolingTowerChemicals1', coolingTowerChemicalsLabels);
+  }, [coolingTowerChemicalsLabels]);
 
   const handleOpenSignatureModal = () => {
     setOpenSignatureModal(true);
@@ -80,28 +84,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     updatedLabels.splice(index, 1);
     setCoolingTowerChemicalsLabels(updatedLabels);
   };
-
-  const handleSaveData = async () => {
-    const batch = writeBatch(db);
-    coolingTowerChemicalsLabels.forEach((chemical, index) => {
-      const docRef = doc(db, 'coolingTowerChemicals1', `chemical${index}`);
-      batch.set(docRef, { label: chemical.label, value: chemical.value, action: chemical.action });
-    });
-
-    // Save the signature and technician name
-    const signatureRef = doc(db, 'coolingTowerChemicals1', 'signature');
-    batch.set(signatureRef, { signature: coolingTowerChemicalsSignature, technicianName: technicianName });
-    // Save the signature and technician name
-      // Save additionalData
-    additionalTableData.forEach((item, index) => {
-      const docRef = doc(db, 'additionalTable', `additionalItem${index}`);
-      batch.set(docRef, { label: item.label, value: item.value, color: item.color });
-    });
-
-    await batch.commit();
-    console.log('Data saved successfully!');
-  };
-
+  
   const [additionalTableData, setAdditionalTableData] = useState([
     { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
     { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
@@ -279,9 +262,6 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
           </Box>
         </Box>
       </Modal>
-      <Button variant="contained" color="primary" onClick={handleSaveData} sx={{ mt: 2 }}>
-        Save Data
-      </Button>
     </>
   );
 };

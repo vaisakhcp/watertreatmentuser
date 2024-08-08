@@ -421,6 +421,7 @@ const Userform = () => {
         <TabPanel value={tabIndex} index={3}>
           <CoolingTowerChemicalsComponent
             updateData={updateData}
+            onSaveAndExit={()=>handleSaveAllData('exit')} 
             columnLabels={[`Available empty Jerry Cans in plants (${formattedWeekStart})`]}
             handleOpenSignatureModal={handleOpenSignatureModal}
             noteSignature={condenserChemicalsSignature}

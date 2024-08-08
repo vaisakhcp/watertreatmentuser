@@ -19,17 +19,14 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     { label: 'Expired CHW Chemicals', value: '', action: '' },
     { label: 'Expired CT Chemicals', value: '', action: '' }
   ]);
-
-  const [additionalDataTable, setAdditionalDataTable] = useState([
-    { label: 'Condenser water dip slide test result as of: ', value: '', type: 'date' },
-    { label: 'Chilled water dip slide test result as of: ', value: '', type: 'date' },
-    { label: 'Condenser system Make-up (m³ / USG)', value: '' },
-    { label: 'Condenser system Blowdown (m³ / USG)', value: '' },
-    { label: 'Chilled water system Make-up (m³ / USG)', value: '' },
-    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '' },
-    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '' },
-    { label: 'MIOX Running Hours (Hr.)', value: '' },
-  ]);
+  const additionalDataTableOrder = ['Condenser water dip slide test result as of: ', 'Chilled water dip slide test result as of: ',
+    'Condenser system Make-up (m³ / USG)', 'Condenser system Blowdown (m³ / USG)', 'Condenser system Blowdown (m³ / USG)',
+    'Chilled water system Make-up (m³ / USG)', 'C.O.C based on conductivity (Condenser/Make-up)', 'C.O.C based on (CT make-up/CT blowdown)',
+  'MIOX Running Hours (Hr.)'
+]
+  const [additionalDataTable, setAdditionalDataTable] = useState(
+    additionalDataTableOrder.map(label => ({ label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }))
+  );
 
   const [technicianName, setTechnicianName] = useState('');
   const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
@@ -59,19 +56,41 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
+        const additionalSnapshop = await getDocs(collection(db, 'additionalDataTable'));
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const additionalData = additionalSnapshop.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (additionalData.length > 0) {
+          const sortedAdditionalData = additionalDataTableOrder.map(label => 
+            additionalData.find(item => item.label === label) || { label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }
+          );
+          setAdditionalDataTable(sortedAdditionalData);
+        }
+
+
         if (data.length > 0) {
-          const chemicalsData = data.filter(item => !item.type || item.type !== 'additionalDataTable');
-          const additionalData = data.filter(item => item.type === 'additionalDataTable');
+          const chemicalsData = data.filter(item => !['technicianName', 'signature'].includes(item.id));
+          
+  
+          // If additionalData is empty, retain the current state
+         
+  
           setCoolingTowerChemicalsLabels(chemicalsData.length ? chemicalsData : coolingTowerChemicalsLabels);
-          setAdditionalDataTable(additionalData.length ? additionalData : additionalDataTable);
+  
+          // Fetch technician name and signature
+          const technicianDoc = data.find(item => item.id === 'technicianInfo');
+          if (technicianDoc) {
+            setTechnicianName(technicianDoc.name || '');
+            setCoolingTowerChemicalsSignature(technicianDoc.signature || '');
+          }
         }
       } catch (error) {
         console.error('Error fetching cooling tower chemicals data:', error);
       }
     };
+  
     fetchData();
   }, []);
+  
 
   useEffect(() => {
     updateData('additionalDataTable', additionalDataTable);
@@ -88,14 +107,16 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     setOpenSignatureModal(false);
 
     // Save the signature to the database
-    const docRef = doc(db, 'coolingTowerChemicals1', 'signature');
-    await setDoc(docRef, { signature: signatureDataUrl });
+    const docRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo');
+    await setDoc(docRef, { signature: signatureDataUrl, name: technicianName });
   };
 
-  const handleTechnichianName = async (e) => {
-    setTechnicianName(e.target.value);
-    const docRef = doc(db, 'coolingTowerChemicals1', 'technicianName');
-    await setDoc(docRef, { name: e.target.value });
+  const handleTechnicianNameChange = async (e) => {
+    const newName = e.target.value;
+    setTechnicianName(newName);
+
+    const docRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo');
+    await setDoc(docRef, { signature: coolingTowerChemicalsSignature, name: newName });
   };
 
   const handleLabelChange = (index, label) => {
@@ -165,7 +186,9 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {coolingTowerChemicalsLabels.map((item, rowIndex) => (
+            {coolingTowerChemicalsLabels
+              .filter(item => item.id !== 'metadata' && item.id !== 'technicianInfo'&& item.id !== 'signature'&& item.id !== 'technicianName')
+              .map((item, rowIndex) => (
               <TableRow key={rowIndex}>
                 <TableCell sx={{ padding: '8px' }}>
                   <Typography>{item.label}</Typography>
@@ -224,16 +247,14 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant="body1">10<sup></sup></Typography>
                       <TextField
-                        value={item.value}
-                        onChange={(e) => {
-                          const newTableData = [...additionalDataTable];
-                          newTableData[index + 2].value = e.target.value;
-                          setAdditionalDataTable(newTableData);
+                       value={item.value}
+                       onChange={(e) => {
+                         const newTableData = [...additionalDataTable];
+                         newTableData[index].value = e.target.value;
+                         setAdditionalDataTable(newTableData);
                         }}
-                        sx={{ width: '56px', ml: 1 }}
-                        InputProps={{
-                          inputProps: { style: { textAlign: 'center' } }
-                        }}
+                        sx={{width:50}}
+                       fullWidth
                       />
                     </Box>
                   ) : (
@@ -268,7 +289,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
         <TextField
           label="Name"
           value={technicianName}
-          onChange={handleTechnichianName}
+          onChange={handleTechnicianNameChange}
           sx={{ flex: 1 }}
         />
         <Box

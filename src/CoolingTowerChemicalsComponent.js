@@ -1,43 +1,43 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
-import { db } from './firebase';
-import TableComponent from './TableComponent';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Container, Box, Tabs, Tab, Paper, TextField, Button,
-  Table, TableBody, TableCell, TableContainer, TableRow,
-  Modal, Typography, useMediaQuery, List, ListItem, Divider, Grid
+  Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, TextField, Button, Modal, Typography, IconButton
 } from '@mui/material';
+import { collection, getDocs, setDoc, doc, writeBatch } from 'firebase/firestore';
+import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
+const CoolingTowerChemicalsComponent = ({ updateData }) => {
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [technicianName, setTechnicianName] = useState('');
   const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const sigPadRef = useRef(null);
 
-  const coolingTowerChemicalsLabels = [
-    'Hydrochloric Acid (25Kg)', 'Sodium Hypochlorite (25Kg)', 'Phosphoric Acid (35Kg)',
-    'Expired CHW Chemicals', 'Expired CT Chemicals'
-  ];
-  const [additionalTableData, setAdditionalTableData] = useState([
-    { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
-    { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
-    { label: 'Condenser system Make-up (m³ / USG)', value: '', color: 'red' },
-    { label: 'Condenser system Blowdown (m³ / USG)', value: '', color: 'red' },
-    { label: 'Chilled water system Make-up (m³ / USG)', value: '', color: 'red' },
-    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '', color: 'blue' },
-    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '', color: 'blue' },
-    { label: 'MIOX Running Hours (Hr.)', value: '', color: 'black' },
+  const [coolingTowerChemicalsLabels, setCoolingTowerChemicalsLabels] = useState([
+    { label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
+    { label: 'Sodium Hypochlorite (25Kg)', value: '', action: '' },
+    { label: 'Phosphoric Acid (35Kg)', value: '', action: '' },
+    { label: 'Expired CHW Chemicals', value: '', action: '' },
+    { label: 'Expired CT Chemicals', value: '', action: '' }
   ]);
 
-  const handleAdditionalTableChange = (e, index) => {
-    const newTableData = [...additionalTableData];
-    newTableData[index].value = e.target.value;
-    setAdditionalTableData(newTableData);
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
+        const data = querySnapshot.docs.map(doc => doc.data());
+        if (data.length > 0) {
+          setCoolingTowerChemicalsLabels(data);
+        }
+      } catch (error) {
+        console.error('Error fetching cooling tower chemicals data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleOpenSignatureModal = () => {
     setOpenSignatureModal(true);
@@ -53,54 +53,125 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
     await setDoc(docRef, { signature: signatureDataUrl });
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setCoolingTowerChemicalsData(data);
-      } catch (error) {
-        console.error('Error fetching cooling tower chemicals data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+  const handleLabelChange = (index, label) => {
+    const updatedLabels = [...coolingTowerChemicalsLabels];
+    updatedLabels[index].label = label;
+    setCoolingTowerChemicalsLabels(updatedLabels);
+  };
+
+  const handleValueChange = (index, value) => {
+    const updatedData = [...coolingTowerChemicalsLabels];
+    updatedData[index].value = value;
+    setCoolingTowerChemicalsLabels(updatedData);
+  };
+
+  const handleActionChange = (index, action) => {
+    const updatedData = [...coolingTowerChemicalsLabels];
+    updatedData[index].action = action;
+    setCoolingTowerChemicalsLabels(updatedData);
+  };
+
+  const handleAddRow = () => {
+    setCoolingTowerChemicalsLabels([...coolingTowerChemicalsLabels, { label: '', value: '', action: '' }]);
+  };
+
+  const handleDeleteRow = (index) => {
+    const updatedLabels = [...coolingTowerChemicalsLabels];
+    updatedLabels.splice(index, 1);
+    setCoolingTowerChemicalsLabels(updatedLabels);
+  };
+
+  const handleSaveData = async () => {
+    const batch = writeBatch(db);
+    coolingTowerChemicalsLabels.forEach((chemical, index) => {
+      const docRef = doc(db, 'coolingTowerChemicals1', `chemical${index}`);
+      batch.set(docRef, { label: chemical.label, value: chemical.value, action: chemical.action });
+    });
+    await batch.commit();
+    console.log('Data saved successfully!');
+  };
+  const [additionalTableData, setAdditionalTableData] = useState([
+    { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
+    { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
+    { label: 'Condenser system Make-up (m³ / USG)', value: '', color: 'red' },
+    { label: 'Condenser system Blowdown (m³ / USG)', value: '', color: 'red' },
+    { label: 'Chilled water system Make-up (m³ / USG)', value: '', color: 'red' },
+    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '', color: 'blue' },
+    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '', color: 'blue' },
+    { label: 'MIOX Running Hours (Hr.)', value: '', color: 'black' },
+  ]);
+  const handleAdditionalTableChange = (e, index) => {
+    const newTableData = [...additionalTableData];
+    newTableData[index].value = e.target.value;
+    setAdditionalTableData(newTableData);
+  };
 
   return (
     <>
-      <TableComponent
-        collectionName="coolingTowerChemicals1"
-        rowLabels={coolingTowerChemicalsLabels}
-        columnLabels={columnLabels}
-        defaultRows={coolingTowerChemicalsData}
-        updateData={updateData}
-      />
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
-        <TextField
-          label="Name"
-          value={technicianName}
-          onChange={(e) => setTechnicianName(e.target.value)}
-          sx={{ flex: 1 }}
-        />
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            border: '1px solid lightgrey',
-            cursor: 'pointer',
-            height: '50px',
-          }}
-          onClick={handleOpenSignatureModal}
-        >
-          {coolingTowerChemicalsSignature ? (
-            <img src={coolingTowerChemicalsSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
-          ) : (
-            'Sign'
-          )}
-        </Box>
-      </Box>
+      <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
+        <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                Stocks
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Value
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
+                Actions
+              </TableCell>
+              <TableCell sx={{ padding: '8px' }}>
+                Delete
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {coolingTowerChemicalsLabels.map((item, rowIndex) => (
+              <TableRow key={rowIndex}>
+                <TableCell sx={{ padding: '8px' }}>
+                  <TextField
+                    value={item.label}
+                    onChange={(e) => handleLabelChange(rowIndex, e.target.value)}
+                    fullWidth
+                  />
+                </TableCell>
+                <TableCell sx={{ padding: '8px' }}>
+                  <TextField
+                    value={item.value}
+                    onChange={(e) => handleValueChange(rowIndex, e.target.value)}
+                    fullWidth
+                  />
+                </TableCell>
+                <TableCell sx={{ padding: '8px' }}>
+                  <TextField
+                    value={item.action}
+                    onChange={(e) => handleActionChange(rowIndex, e.target.value)}
+                    fullWidth
+                  />
+                </TableCell>
+                <TableCell sx={{ padding: '8px', display: 'flex', justifyContent: 'center' }}>
+                  <IconButton onClick={() => handleDeleteRow(rowIndex)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+            <TableRow>
+              <TableCell colSpan={4}>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddRow}
+                  fullWidth
+                >
+                  Add Row
+                </Button>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
       <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
         <Table>
           <TableBody>
@@ -133,6 +204,33 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
           </TableBody>
         </Table>
       </TableContainer>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
+        <TextField
+          label="Name"
+          value={technicianName}
+          onChange={(e) => setTechnicianName(e.target.value)}
+          sx={{ flex: 1 }}
+        />
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            border: '1px solid lightgrey',
+            cursor: 'pointer',
+            height: '50px',
+          }}
+          onClick={handleOpenSignatureModal}
+        >
+          {coolingTowerChemicalsSignature ? (
+            <img src={coolingTowerChemicalsSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+          ) : (
+            'Sign'
+          )}
+        </Box>
+      </Box>
+
       <Modal
         open={openSignatureModal}
         onClose={() => setOpenSignatureModal(false)}

@@ -87,9 +87,15 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
       const docRef = doc(db, 'coolingTowerChemicals1', `chemical${index}`);
       batch.set(docRef, { label: chemical.label, value: chemical.value, action: chemical.action });
     });
+
+    // Save the signature and technician name
+    const signatureRef = doc(db, 'coolingTowerChemicals1', 'signature');
+    batch.set(signatureRef, { signature: coolingTowerChemicalsSignature, technicianName: technicianName });
+
     await batch.commit();
     console.log('Data saved successfully!');
   };
+
   const [additionalTableData, setAdditionalTableData] = useState([
     { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
     { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
@@ -267,6 +273,9 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
           </Box>
         </Box>
       </Modal>
+      <Button variant="contained" color="primary" onClick={handleSaveData} sx={{ mt: 2 }}>
+        Save Data
+      </Button>
     </>
   );
 };

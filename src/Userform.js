@@ -232,6 +232,7 @@ const Userform = () => {
       setCoolingTowerChemicalsData([]);
 
       toast.success('Data cleared successfully!');
+      window.location.reload()
     } catch (error) {
       console.error('Error clearing data:', error);
       toast.error('Error clearing data. Please try again.');
@@ -339,9 +340,9 @@ const Userform = () => {
             </Grid>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3 ,gap: 2}}>
+          <Button variant="outlined" color="error" onClick={handleClearAllData}>Clear Data</Button>
           <Button variant="contained" color="primary" onClick={handleSaveAllData}>Submit report</Button>
-          <Button variant="contained" color="error" onClick={handleClearAllData}>Clear Data</Button>
         </Box>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>

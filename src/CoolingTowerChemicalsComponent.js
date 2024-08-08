@@ -1,283 +1,274 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { db } from './firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { useParams, Link } from 'react-router-dom';
 import {
-  Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, Button, Modal, Typography, IconButton
+  Container,
+  Typography,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Grid,
+  Breadcrumbs,
+  CircularProgress,
+  Divider,
+  Button,
+  createTheme,
+  ThemeProvider,
 } from '@mui/material';
-import { collection, getDocs, setDoc, doc, writeBatch } from 'firebase/firestore';
-import { db } from './firebase';
-import SignaturePad from 'react-signature-canvas';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { blue } from '@mui/material/colors';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-const CoolingTowerChemicalsComponent = ({ updateData }) => {
-  const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
-  const [technicianName, setTechnicianName] = useState('');
-  const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
-  const [openSignatureModal, setOpenSignatureModal] = useState(false);
-  const sigPadRef = useRef(null);
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: blue[700],
+    },
+    background: {
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#000000',
+      secondary: '#5f6368',
+    },
+  },
+  typography: {
+    fontFamily: 'Poppins, sans-serif',
+    h1: {
+      fontSize: '2rem',
+      fontWeight: 600,
+    },
+    h2: {
+      fontSize: '1.5rem',
+      fontWeight: 500,
+    },
+    h3: {
+      fontSize: '1.25rem',
+      fontWeight: 500,
+    },
+    body1: {
+      fontSize: '1rem',
+      fontWeight: 400,
+    },
+    body2: {
+      fontSize: '0.875rem',
+      fontWeight: 400,
+    },
+  },
+});
 
-  const [coolingTowerChemicalsLabels, setCoolingTowerChemicalsLabels] = useState([
-    { label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
-    { label: 'Sodium Hypochlorite (25Kg)', value: '', action: '' },
-    { label: 'Phosphoric Acid (35Kg)', value: '', action: '' },
-    { label: 'Expired CHW Chemicals', value: '', action: '' },
-    { label: 'Expired CT Chemicals', value: '', action: '' }
-  ]);
+const AdminDetail = () => {
+  const { id } = useParams();
+  const [submission, setSubmission] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
-        const data = querySnapshot.docs.map(doc => doc.data());
-        if (data.length > 0) {
-          setCoolingTowerChemicalsLabels(data);
-        }
-      } catch (error) {
-        console.error('Error fetching cooling tower chemicals data:', error);
+      const docRef = doc(db, 'shiftHandOvers', id);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        setSubmission(docSnap.data());
+      } else {
+        console.log("No such document!");
       }
+      setLoading(false);
     };
+
     fetchData();
-  }, []);
+  }, [id]);
 
-  const handleOpenSignatureModal = () => {
-    setOpenSignatureModal(true);
-  };
-
-  const handleSign = async () => {
-    const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-    setCoolingTowerChemicalsSignature(signatureDataUrl);
-    setOpenSignatureModal(false);
-
-    // Save the signature to the database
-    const docRef = doc(db, 'coolingTowerChemicals1', 'signature');
-    await setDoc(docRef, { signature: signatureDataUrl });
-  };
-
-  const handleLabelChange = (index, label) => {
-    const updatedLabels = [...coolingTowerChemicalsLabels];
-    updatedLabels[index].label = label;
-    setCoolingTowerChemicalsLabels(updatedLabels);
-  };
-
-  const handleValueChange = (index, value) => {
-    const updatedData = [...coolingTowerChemicalsLabels];
-    updatedData[index].value = value;
-    setCoolingTowerChemicalsLabels(updatedData);
-  };
-
-  const handleActionChange = (index, action) => {
-    const updatedData = [...coolingTowerChemicalsLabels];
-    updatedData[index].action = action;
-    setCoolingTowerChemicalsLabels(updatedData);
-  };
-
-  const handleAddRow = () => {
-    setCoolingTowerChemicalsLabels([...coolingTowerChemicalsLabels, { label: '', value: '', action: '' }]);
-  };
-
-  const handleDeleteRow = (index) => {
-    const updatedLabels = [...coolingTowerChemicalsLabels];
-    updatedLabels.splice(index, 1);
-    setCoolingTowerChemicalsLabels(updatedLabels);
-  };
-
-  const handleSaveData = async () => {
-    const batch = writeBatch(db);
-    coolingTowerChemicalsLabels.forEach((chemical, index) => {
-      const docRef = doc(db, 'coolingTowerChemicals1', `chemical${index}`);
-      batch.set(docRef, { label: chemical.label, value: chemical.value, action: chemical.action });
-    });
-
-    // Save the signature and technician name
-    const signatureRef = doc(db, 'coolingTowerChemicals1', 'signature');
-    batch.set(signatureRef, { signature: coolingTowerChemicalsSignature, technicianName: technicianName });
-
-    await batch.commit();
-    console.log('Data saved successfully!');
-  };
-
-  const [additionalTableData, setAdditionalTableData] = useState([
-    { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
-    { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
-    { label: 'Condenser system Make-up (m³ / USG)', value: '', color: 'red' },
-    { label: 'Condenser system Blowdown (m³ / USG)', value: '', color: 'red' },
-    { label: 'Chilled water system Make-up (m³ / USG)', value: '', color: 'red' },
-    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '', color: 'blue' },
-    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '', color: 'blue' },
-    { label: 'MIOX Running Hours (Hr.)', value: '', color: 'black' },
-  ]);
-  const handleAdditionalTableChange = (e, index) => {
-    const newTableData = [...additionalTableData];
-    newTableData[index].value = e.target.value;
-    setAdditionalTableData(newTableData);
+  const downloadPDF = () => {
+    const input = document.getElementById('pdf-content');
+    html2canvas(input)
+      .then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF();
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save('report.pdf');
+      });
   };
 
   return (
-    <>
-      <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
-        <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                Stocks
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Value
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                Actions
-              </TableCell>
-              <TableCell sx={{ padding: '8px' }}>
-                Delete
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {coolingTowerChemicalsLabels.map((item, rowIndex) => (
-              <TableRow key={rowIndex}>
-                <TableCell sx={{ padding: '8px' }}>
-                  <TextField
-                    value={item.label}
-                    onChange={(e) => handleLabelChange(rowIndex, e.target.value)}
-                    fullWidth
-                  />
-                </TableCell>
-                <TableCell sx={{ padding: '8px' }}>
-                  <TextField
-                    value={item.value}
-                    onChange={(e) => handleValueChange(rowIndex, e.target.value)}
-                    fullWidth
-                  />
-                </TableCell>
-                <TableCell sx={{ padding: '8px' }}>
-                  <TextField
-                    value={item.action}
-                    onChange={(e) => handleActionChange(rowIndex, e.target.value)}
-                    fullWidth
-                  />
-                </TableCell>
-                <TableCell sx={{ padding: '8px', display: 'flex', justifyContent: 'center' }}>
-                  <IconButton onClick={() => handleDeleteRow(rowIndex)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-            <TableRow>
-              <TableCell colSpan={4}>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddRow}
-                  fullWidth
-                >
-                  Add Row
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
-        <Table>
-          <TableBody>
-            {additionalTableData.map((item, index) => (
-              <TableRow key={index}>
-                <TableCell>{item.label}</TableCell>
-                <TableCell>
-                  {index < 2 ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">10<sup></sup></Typography>
-                      <TextField
-                        value={item.value}
-                        onChange={(e) => handleAdditionalTableChange(e, index)}
-                        sx={{ width: '56px', ml: 1 }}
-                        InputProps={{
-                          inputProps: { style: { textAlign: 'center' } }
+    <ThemeProvider theme={theme}>
+      <Container component={Paper} sx={{ p: 3, mt: 3, backgroundColor: theme.palette.background.paper }} style={{ marginBottom: 60 }}>
+        <Box id="pdf-content">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <img src={require('./logo.png')} alt="Logo" style={{ height: '50px' }} />
+            </Box>
+            <Box>
+              <Typography variant="h1" component="h1" gutterBottom>
+                Daily Shift Hand Over Form
+              </Typography>
+            </Box>
+          </Box>
+          <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+            <Link to="/admin" style={{ color: theme.palette.primary.main }}>Admin Panel</Link>
+            <Typography color="textPrimary">Submission Details</Typography>
+          </Breadcrumbs>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+              <CircularProgress color="primary" />
+            </Box>
+          ) : submission ? (
+            <Box>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body1"><strong>Plant Name:</strong> {submission.plantName}</Typography>
+                  <Typography variant="body1"><strong>Date:</strong> {submission.date}</Typography>
+                  <Typography variant="body1"><strong>Time:</strong> {submission.time}</Typography>
+                  <Typography variant="body1"><strong>Shift:</strong> {submission.shift}</Typography>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h3" component="h3" gutterBottom>
+                Plant Status
+              </Typography>
+              <Table sx={{ mb: 3, border: '1px solid #ddd' }}>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                    <TableCell sx={{ fontWeight: 'bold', padding: '10px', border: '1px solid #ddd' }}>Equipment List</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', padding: '10px', border: '1px solid #ddd' }}>Plant Actual Parameters</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', padding: '10px', border: '1px solid #ddd' }}>Status / Remarks</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {submission.equipmentStatus.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell sx={{ padding: '10px', border: '1px solid #ddd' }}>{item.equipment}</TableCell>
+                      <TableCell sx={{ padding: '10px', border: '1px solid #ddd' }}>{item.parameters}</TableCell>
+                      <TableCell sx={{ padding: '10px', border: '1px solid #ddd' }}>{item.status}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h3" component="h3" gutterBottom>
+                Activities
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <ul>
+                  {submission.activities.map((activity, index) => (
+                    <li key={index}>
+                      <Typography variant="body1">{activity}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h3" component="h3" gutterBottom>
+                Equipment not Available
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <ul>
+                  {submission.equipmentNotAvailable.map((equipment, index) => (
+                    <li key={index}>
+                      <Typography variant="body1">{equipment}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              </Box>
+
+              <Grid container spacing={3} sx={{ mt: 4 }}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{
+                    textAlign: 'center',
+                    p: 3,
+                    borderRadius: '4px',
+                    backgroundColor: theme.palette.background.default,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    mb: 2
+                  }}>
+                    <Typography variant="body2" sx={{ mb: 2, fontSize: '1rem',height:100 }}>
+                      I confirm that I have explained the plant status and activities carried out during my shift to the replacing operator.
+                    </Typography>
+                    {submission.operatorSignature && (
+                      <img
+                        src={submission.operatorSignature}
+                        alt="Operator Signature"
+                        style={{
+                          display: 'block',
+                          margin: '0 auto',
+                          border: '1px solid #000',
+                          height: '150px', // Fixed height for the image
+                          objectFit: 'contain'
                         }}
                       />
-                    </Box>
-                  ) : (
-                    <TextField
-                      value={item.value}
-                      onChange={(e) => handleAdditionalTableChange(e, index)}
-                      fullWidth
-                    />
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
-        <TextField
-          label="Name"
-          value={technicianName}
-          onChange={(e) => setTechnicianName(e.target.value)}
-          sx={{ flex: 1 }}
-        />
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            border: '1px solid lightgrey',
-            cursor: 'pointer',
-            height: '50px',
-          }}
-          onClick={handleOpenSignatureModal}
-        >
-          {coolingTowerChemicalsSignature ? (
-            <img src={coolingTowerChemicalsSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                    )}
+                    <Typography variant="body1" sx={{ mt: 2, fontSize: '1.2rem', fontWeight: 'bold' }}>
+                      Operator Signature
+                    </Typography>
+                    <Typography variant="body1" sx={{ mt: 1 }}>{submission.operatorName}</Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>{submission.operatorDate}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{
+                    textAlign: 'center',
+                    p: 3,
+                    borderRadius: '4px',
+                    backgroundColor: theme.palette.background.default,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    mb: 2
+                  }}>
+                    <Typography variant="body2" sx={{ mb: 2, fontSize: '1rem',height:100 }}>
+                      I confirm that I understand plant status and activities carried out as explained by the shift operator.
+                    </Typography>
+                    {submission.supervisorSignature && (
+                      <img
+                        src={submission.supervisorSignature}
+                        alt="Supervisor Signature"
+                        style={{
+                          display: 'block',
+                          margin: '0 auto',
+                          border: '1px solid #000',
+                          height: '150px', // Fixed height for the image
+                          objectFit: 'contain'
+                        }}
+                      />
+                    )}
+                    <div>
+                      <Typography variant="body1" sx={{ mt: 2, fontSize: '1.2rem', fontWeight: 'bold' }}>
+                        Supervisor Signature
+                      </Typography>
+                      <Typography variant="body1" sx={{ mt: 1 }}>{submission.supervisorName}</Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>{submission.supervisorDate}</Typography>
+                    </div>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
           ) : (
-            'Sign'
+            <Typography variant="body1" gutterBottom>Loading...</Typography>
           )}
         </Box>
-      </Box>
-
-      <Modal
-        open={openSignatureModal}
-        onClose={() => setOpenSignatureModal(false)}
-        aria-labelledby="signature-modal-title"
-        aria-describedby="signature-modal-description"
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: 600,
-            bgcolor: 'background.paper',
-            boxShadow: 24,
-            p: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography id="signature-modal-title" variant="h6" component="h2" gutterBottom>
-            Signature
-          </Typography>
-          <Box sx={{ width: '100%', height: 200, border: '1px solid #000' }}>
-            <SignaturePad ref={sigPadRef} canvasProps={{ style: { width: '100%', height: '100%' } }} />
-          </Box>
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-            <Button variant="contained" color="primary" onClick={handleSign}>
-              Sign
-            </Button>
-          </Box>
-        </Box>
-      </Modal>
-      <Button variant="contained" color="primary" onClick={handleSaveData} sx={{ mt: 2 }}>
-        Save Data
-      </Button>
-    </>
+        <Button variant="contained" color="primary" onClick={downloadPDF} sx={{ mt: 2 }}>
+          Download Report as PDF
+        </Button>
+        <Link to="/admin" style={{ color: theme.palette.primary.main, marginTop: '20px', display: 'block' }}>Back to List</Link>
+      </Container>
+    </ThemeProvider>
   );
 };
 
-export default CoolingTowerChemicalsComponent;
+export default AdminDetail;

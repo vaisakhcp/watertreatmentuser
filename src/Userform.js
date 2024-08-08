@@ -111,6 +111,7 @@ const Userform = () => {
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
   const [notesData, setNotesData] = useState([]);
+  const [additionalData, setAdditionalData] = useState([]);
   const [noteName, setNoteName] = useState('');
   const [noteSignature, setNoteSignature] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
@@ -172,6 +173,9 @@ const Userform = () => {
       case 'notes2':
         setNotesData(data);
         break;
+        case 'additionalData':
+          setAdditionalData(data);
+          break;
       default:
         break;
     }
@@ -194,11 +198,13 @@ const Userform = () => {
         signature: condenserChemicalsSignature,
       });
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
+      await handleSaveData('notes2', notesData, '', plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
+      await handleSaveData('additionalTable', additionalData, '', plantName); // Save additionalData
       await handleSaveNotes();
-
+  
       toast.success('Report submitted successfully!');
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -228,21 +234,31 @@ const Userform = () => {
     await setDoc(notesDoc, { notes: notesData, name: noteName, signature: noteSignature });
   };
 
+  const handleSaveAdditionalData = async () => {
+    const notesDoc = doc(db, 'notes2', 'noteList');
+    await setDoc(notesDoc, { notes: additionalData});
+  };
   const handleClearAllData = async () => {
     setIsLoading(true);
     try {
+      // Add the collections you want to clear
       await clearCollectionData('condenserWater1');
       await clearCollectionData('chilledWater1');
       await clearCollectionData('condenserChemicals1');
       await clearCollectionData('coolingTowerChemicals1');
-
+      await clearCollectionData('notes2');
+      await clearCollectionData('additionalTable'); // Add any other collection you need to clear
+  
+      // Clear state data
       setCondenserWaterData([]);
       setChilledWaterData([]);
       setCondenserChemicalsData([]);
       setCoolingTowerChemicalsData([]);
-
+      setNotesData([]); // Add the state for notes
+      setAdditionalData([]); // Add the state for additional table data
+  
       toast.success('Data cleared successfully!');
-      window.location.reload()
+      window.location.reload();
     } catch (error) {
       console.error('Error clearing data:', error);
       toast.error('Error clearing data. Please try again.');
@@ -250,7 +266,8 @@ const Userform = () => {
       setIsLoading(false);
     }
   };
-
+  
+  // Function to clear a specific Firestore collection
   const clearCollectionData = async (collectionName) => {
     try {
       const querySnapshot = await getDocs(collection(db, collectionName));
@@ -263,6 +280,7 @@ const Userform = () => {
       console.error(`Error clearing data from ${collectionName}:`, error);
     }
   };
+  
 
   const condenserWaterLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const chilledWaterLabels = [new Date().toLocaleDateString()];

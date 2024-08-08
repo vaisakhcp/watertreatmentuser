@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import { TextField, List, ListItem, ListItemText, IconButton, Box, Typography, Button } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SignaturePad from 'react-signature-canvas';
 
-const NotesComponent = ({ noteSignature, handleOpenSignatureModal, handleSign, updateData }) => {
+const NotesComponent = ({ noteSignature, handleOpenSignatureModal, handleSaveNotes, noteName, setNoteName }) => {
   const [noteList, setNoteList] = useState([]);
   const [noteInput, setNoteInput] = useState('');
-  const [noteName, setNoteName] = useState('');
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -33,11 +30,6 @@ const NotesComponent = ({ noteSignature, handleOpenSignatureModal, handleSign, u
     setNoteList(newList);
   };
 
-  const handleSaveNotes = async () => {
-    const notesDoc = doc(db, 'notes2', 'noteList');
-    await setDoc(notesDoc, { notes: noteList });
-  };
-
   return (
     <>
       <Box sx={{ mt: 2 }}>
@@ -59,7 +51,7 @@ const NotesComponent = ({ noteSignature, handleOpenSignatureModal, handleSign, u
               onChange={(e) => setNoteInput(e.target.value)}
               placeholder="Add a note"
             />
-            <Button style={{marginLeft: 15,marginTop:-14, borderRadius:0, height: 50}}     variant="outlined" color="primary" onClick={handleAddNote} >Save</Button>
+            <Button style={{ marginLeft: 15, marginTop: -14, borderRadius: 0, height: 50 }} variant="outlined" color="primary" onClick={handleAddNote}>Save</Button>
           </ListItem>
         </List>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>

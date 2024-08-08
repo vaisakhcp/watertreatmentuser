@@ -96,6 +96,7 @@ const TabPanel = ({ children, value, index }) => {
     </div>
   );
 };
+
 const Userform = () => {
   const [weekCommencing, setWeekCommencing] = useState(dayjs().startOf('week'));
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +110,9 @@ const Userform = () => {
   const [chilledWaterData, setChilledWaterData] = useState([]);
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
+  const [notesData, setNotesData] = useState([]);
+  const [noteName, setNoteName] = useState('');
+  const [noteSignature, setNoteSignature] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const [currentComponent, setCurrentComponent] = useState('');
   const sigPadRef = useRef(null);
@@ -140,6 +144,8 @@ const Userform = () => {
       setChilledWaterSignature(signatureDataUrl);
     } else if (currentComponent === 'condenserChemicals1') {
       setCondenserChemicalsSignature(signatureDataUrl);
+    } else if (currentComponent === 'notes') {
+      setNoteSignature(signatureDataUrl);
     }
 
     // Save the signature to Firebase
@@ -162,6 +168,9 @@ const Userform = () => {
         break;
       case 'coolingTowerChemicals1':
         setCoolingTowerChemicalsData(data);
+        break;
+      case 'notes2':
+        setNotesData(data);
         break;
       default:
         break;
@@ -215,7 +224,8 @@ const Userform = () => {
   };
 
   const handleSaveNotes = async () => {
-    // Implement save notes functionality here
+    const notesDoc = doc(db, 'notes2', 'noteList');
+    await setDoc(notesDoc, { notes: notesData, name: noteName, signature: noteSignature });
   };
 
   const handleClearAllData = async () => {
@@ -274,12 +284,14 @@ const Userform = () => {
         const chilledWaterSnapshot = await getDocs(collection(db, 'chilledWater1'));
         const condenserChemicalsSnapshot = await getDocs(collection(db, 'condenserChemicals1'));
         const coolingTowerChemicalsSnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
+        const notesSnapshot = await getDocs(collection(db, 'notes2'));
 
         // Process and set data accordingly
         setCondenserWaterData(condenserWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setChilledWaterData(chilledWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCondenserChemicalsData(condenserChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCoolingTowerChemicalsData(coolingTowerChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setNotesData(notesSnapshot.docs.map(doc => doc.data().notes).flat());
 
         // Fetch technician info
         const chilledWaterDocRef = doc(db, 'chilledWater1', 'technicianInfo');
@@ -296,6 +308,14 @@ const Userform = () => {
           const { name, signature } = condenserChemicalsDocSnap.data();
           setTechnicianNameChemicals(name || '');
           setCondenserChemicalsSignature(signature || '');
+        }
+
+        const notesDocRef = doc(db, 'notes2', 'technicianInfo');
+        const notesDocSnap = await getDoc(notesDocRef);
+        if (notesDocSnap.exists()) {
+          const { name, signature } = notesDocSnap.data();
+          setNoteName(name || '');
+          setNoteSignature(signature || '');
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -390,9 +410,11 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
           <NotesComponent
-            noteSignature={chilledWaterSignature}
-            handleOpenSignatureModal={handleOpenSignatureModal}
-            handleSign={handleSign}
+            noteSignature={noteSignature}
+            handleOpenSignatureModal={() => handleOpenSignatureModal('notes')}
+            handleSaveNotes={handleSaveNotes}
+            noteName={noteName}
+            setNoteName={setNoteName}
             updateData={updateData}
           />
         </TabPanel>

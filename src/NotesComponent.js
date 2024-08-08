@@ -59,9 +59,7 @@ const NotesComponent = ({ noteSignature, handleOpenSignatureModal, handleSign, u
               onChange={(e) => setNoteInput(e.target.value)}
               placeholder="Add a note"
             />
-            <IconButton color="primary" onClick={handleAddNote}>
-              <AddIcon />
-            </IconButton>
+            <Button style={{marginLeft: 15,marginTop:-14, borderRadius:0, height: 50}}     variant="outlined" color="primary" onClick={handleAddNote} >Save</Button>
           </ListItem>
         </List>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>

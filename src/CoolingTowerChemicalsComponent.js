@@ -90,7 +90,8 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
   };
 
   const handleTechnichianName = async (e) => {
-    const docRef = doc(db, 'coolingTowerChemicals1', 'name');
+    setTechnicianName(e.target.value)
+    const docRef = doc(db, 'coolingTowerChemicals1', 'technicianName');
     await setDoc(docRef, { name: e.target.value });
   };
 

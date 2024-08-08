@@ -20,7 +20,7 @@ import NotesComponent from './NotesComponent';
 import dayjs from 'dayjs';
 import SignaturePad from 'react-signature-canvas';
 import 'dayjs/locale/en-gb';
-import { getDoc } from 'firebase/firestore';
+import { getDoc ,query,where} from 'firebase/firestore';
 
 const theme = createTheme({
   palette: {
@@ -183,7 +183,7 @@ const Userform = () => {
 
   const handleSaveAllData = async (params) => {
     setIsLoading(true);
-    const plantName = "AD-001";
+    const plantName = "AD-008";
     try {
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
         ...item,
@@ -308,12 +308,16 @@ const Userform = () => {
       setIsInitialLoading(true);
       try {
         // Fetch data for all components here
-        const condenserWaterSnapshot = await getDocs(collection(db, 'condenserWater1'));
-        const chilledWaterSnapshot = await getDocs(collection(db, 'chilledWater1'));
-        const condenserChemicalsSnapshot = await getDocs(collection(db, 'condenserChemicals1'));
-        const coolingTowerChemicalsSnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
-        const notesSnapshot = await getDocs(collection(db, 'notes2'));
-        const additionalDataSnapshot = await getDocs(collection(db, 'additionalDataTable'));
+        const plantName = 'AD-001';
+
+        // Fetch data for all components here, filtered by plantName
+        const condenserWaterSnapshot = await getDocs(query(collection(db, 'condenserWater1'), where('plantName', '==', plantName)));
+        const chilledWaterSnapshot = await getDocs(query(collection(db, 'chilledWater1'), where('plantName', '==', plantName)));
+        const condenserChemicalsSnapshot = await getDocs(query(collection(db, 'condenserChemicals1'), where('plantName', '==', plantName)));
+        const coolingTowerChemicalsSnapshot = await getDocs(query(collection(db, 'coolingTowerChemicals1'), where('plantName', '==', plantName)));
+        const notesSnapshot = await getDocs(query(collection(db, 'notes2'), where('plantName', '==', plantName)));
+        const additionalDataSnapshot = await getDocs(query(collection(db, 'additionalDataTable'), where('plantName', '==', plantName)));
+  
 
         // Process and set data accordingly
         setCondenserWaterData(condenserWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -381,7 +385,7 @@ const Userform = () => {
                 renderInput={(params) => <TextField {...params} fullWidth />} />
             </LocalizationProvider>
           </Grid>
-          <Chip label="Plant Name: AD-001" color="primary" size="small" sx={{ mt: 0.5 }} />
+          <Chip label="Plant Name: AD-008" color="primary" size="small" sx={{ mt: 0.5 }} />
           <Box sx={{ mt: 1 }}>
             <Grid container spacing={1} alignItems="center">
               <Grid item xs={12} sm={4}><Typography variant="subtitle2">Operations Department: TOM-OPS-FM-2009</Typography></Grid>

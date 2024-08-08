@@ -67,6 +67,15 @@ const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnician
       setCondenserChemicalsData(newData);
     }
 
+    const completeData = condenserChemicalsData.map((row, index) => ({
+      ...row,
+      label: condenserChemicalsLabels[index],
+    }));
+
+    await setDoc(doc(db, 'condenserChemicals1', 'condenserChemicalsData'), {
+      data: completeData,
+    });
+
     setOpenSignatureModal(false);
   };
 

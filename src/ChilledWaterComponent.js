@@ -68,10 +68,12 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
 
   const handleDateChange = (date, rowIndex) => {
     const newRows = [...chilledWaterData];
+    if (!newRows[rowIndex]) {
+      newRows[rowIndex] = {};
+    }
     newRows[rowIndex]['Day'] = date;
     setChilledWaterData(newRows);
   };
-
   return (
     <>
       {isMobile ? (

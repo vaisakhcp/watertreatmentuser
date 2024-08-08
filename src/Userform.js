@@ -20,6 +20,7 @@ import NotesComponent from './NotesComponent';
 import dayjs from 'dayjs';
 import SignaturePad from 'react-signature-canvas';
 import 'dayjs/locale/en-gb'; 
+import { getDoc } from 'firebase/firestore';
 
 const theme = createTheme({
   palette: {
@@ -176,11 +177,16 @@ const Userform = () => {
         ...item,
         id: item.id || doc(collection(db, 'chilledWater1')).id
       }));
+      await setDoc(doc(db, 'chilledWater1', 'technicianInfo'), {
+        name: technicianNameChilled,
+        signature: chilledWaterSignature,
+      });
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
       await handleSaveNotes();
+      
 
       toast.success('Report submitted successfully!');
     } catch (error) {
@@ -270,6 +276,15 @@ const Userform = () => {
         setChilledWaterData(chilledWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCondenserChemicalsData(condenserChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCoolingTowerChemicalsData(coolingTowerChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  
+        // Fetch technician info
+        const chilledWaterDocRef = doc(db, 'chilledWater1', 'technicianInfo');
+        const chilledWaterDocSnap = await getDoc(chilledWaterDocRef);
+        if (chilledWaterDocSnap.exists()) {
+          const { name, signature } = chilledWaterDocSnap.data();
+          setTechnicianNameChilled(name || '');
+          setChilledWaterSignature(signature || '');
+        }
       } catch (error) {
         console.error('Error fetching initial data:', error);
       } finally {
@@ -279,6 +294,7 @@ const Userform = () => {
   
     fetchInitialData();
   }, []);
+  
   
   return (
     <ThemeProvider theme={theme}>
@@ -336,11 +352,11 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           <ChilledWaterComponent
-            updateData={updateData}
-            technicianName={technicianNameChilled}
-            setTechnicianName={setTechnicianNameChilled}
-            noteSignature={chilledWaterSignature}
-            handleOpenSignatureModal={handleOpenSignatureModal}
+         updateData={updateData}
+         technicianName={technicianNameChilled}
+         setTechnicianName={setTechnicianNameChilled}
+         noteSignature={chilledWaterSignature}
+         handleOpenSignatureModal={handleOpenSignatureModal}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={2}>

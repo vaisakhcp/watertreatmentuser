@@ -1,21 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, Button, Modal, Typography, IconButton
+  Paper, TextField, Button, Modal, Typography, IconButton,Link,Popper
 } from '@mui/material';
-import { collection, getDocs, setDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import AddIcon from '@mui/icons-material/Add';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import DeleteIcon from '@mui/icons-material/Delete';
-
-const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
-  const [coolingTowerChemicalsData, setCoolingTowerChemicalsData] = useState([]);
-  const [technicianName, setTechnicianName] = useState('');
-  const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
-  const [openSignatureModal, setOpenSignatureModal] = useState(false);
-  const sigPadRef = useRef(null);
-
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+const CoolingTowerChemicalsComponent = ({ updateData }) => {
   const [coolingTowerChemicalsLabels, setCoolingTowerChemicalsLabels] = useState([
     { label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
     { label: 'Sodium Hypochlorite (25Kg)', value: '', action: '' },
@@ -24,13 +19,48 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
     { label: 'Expired CT Chemicals', value: '', action: '' }
   ]);
 
+  const [additionalDataTable, setAdditionalDataTable] = useState([
+    { label: 'Condenser water dip slide test result as of: ', value: '', type: 'date' },
+    { label: 'Chilled water dip slide test result as of: ', value: '', type: 'date' },
+    { label: 'Condenser system Make-up (m³ / USG)', value: '' },
+    { label: 'Condenser system Blowdown (m³ / USG)', value: '' },
+    { label: 'Chilled water system Make-up (m³ / USG)', value: '' },
+    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '' },
+    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '' },
+    { label: 'MIOX Running Hours (Hr.)', value: '' },
+  ]);
+
+  const [technicianName, setTechnicianName] = useState('');
+  const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
+  const [openSignatureModal, setOpenSignatureModal] = useState(false);
+  const sigPadRef = useRef(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [openDatePicker, setOpenDatePicker] = useState(false);
+  const [selectedDateIndex, setSelectedDateIndex] = useState(null);
+  const [selectedDates, setSelectedDates] = useState({});
+
+  const handleOpenDatePicker = (event, index) => {
+    event.preventDefault();
+    setAnchorEl(event.currentTarget);
+    setSelectedDateIndex(index);
+    setOpenDatePicker(true);
+  };
+
+  const handleDateChange = (newDate) => {
+    const updatedDates = { ...selectedDates, [selectedDateIndex]: newDate };
+    setSelectedDates(updatedDates);
+    setOpenDatePicker(false);
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (data.length > 0) {
-          setCoolingTowerChemicalsLabels(data);
+          const chemicalsData = data.filter(item => !item.type || item.type !== 'additionalDataTable');
+          const additionalData = data.filter(item => item.type === 'additionalDataTable');
+          setCoolingTowerChemicalsLabels(chemicalsData.length ? chemicalsData : coolingTowerChemicalsLabels);
+          setAdditionalDataTable(additionalData.length ? additionalData : additionalDataTable);
         }
       } catch (error) {
         console.error('Error fetching cooling tower chemicals data:', error);
@@ -40,8 +70,9 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
   }, []);
 
   useEffect(() => {
+    updateData('additionalDataTable', additionalDataTable);
     updateData('coolingTowerChemicals1', coolingTowerChemicalsLabels);
-  }, [coolingTowerChemicalsLabels]);
+  }, [coolingTowerChemicalsLabels, additionalDataTable, updateData]);
 
   const handleOpenSignatureModal = () => {
     setOpenSignatureModal(true);
@@ -55,7 +86,14 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
     // Save the signature to the database
     const docRef = doc(db, 'coolingTowerChemicals1', 'signature');
     await setDoc(docRef, { signature: signatureDataUrl });
+    
   };
+
+  const handleTechnichianName = async (e) => {
+    const docRef = doc(db, 'coolingTowerChemicals1', 'name');
+    await setDoc(docRef, { name: e.target.value });
+  };
+
 
   const handleLabelChange = (index, label) => {
     const updatedLabels = [...coolingTowerChemicalsLabels];
@@ -84,21 +122,11 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
     updatedLabels.splice(index, 1);
     setCoolingTowerChemicalsLabels(updatedLabels);
   };
-  
-  const [additionalTableData, setAdditionalTableData] = useState([
-    { label: 'Condenser water dip slide test result as of: 30th October 2022', value: '', color: 'blue' },
-    { label: 'Chilled water dip slide test result as of: 02nd November 2022', value: '', color: 'blue' },
-    { label: 'Condenser system Make-up (m³ / USG)', value: '', color: 'red' },
-    { label: 'Condenser system Blowdown (m³ / USG)', value: '', color: 'red' },
-    { label: 'Chilled water system Make-up (m³ / USG)', value: '', color: 'red' },
-    { label: 'C.O.C based on conductivity (Condenser/Make-up)', value: '', color: 'blue' },
-    { label: 'C.O.C based on (CT make-up/CT blowdown)', value: '', color: 'blue' },
-    { label: 'MIOX Running Hours (Hr.)', value: '', color: 'black' },
-  ]);
+
   const handleAdditionalTableChange = (e, index) => {
-    const newTableData = [...additionalTableData];
+    const newTableData = [...additionalDataTable];
     newTableData[index].value = e.target.value;
-    setAdditionalTableData(newTableData);
+    setAdditionalDataTable(newTableData);
   };
 
   return (
@@ -108,7 +136,7 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>
-                Stocks
+                Products
               </TableCell>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Value
@@ -170,40 +198,66 @@ const CoolingTowerChemicalsComponent = ({ updateData, columnLabels }) => {
       <TableContainer component={Paper} sx={{ mt: 2, overflowX: 'auto' }}>
         <Table>
           <TableBody>
-            {additionalTableData.map((item, index) => (
+            {additionalDataTable.map((item, index) => (
               <TableRow key={index}>
-                <TableCell>{item.label}</TableCell>
+                  <TableCell>
+                {item.label}
+                  {item.type === 'date' && (
+                     <Link href="#" onClick={(event) => handleOpenDatePicker(event, index)}>
+                     {selectedDates[index] ? selectedDates[index].toLocaleDateString() : 'Select Date'}
+                   </Link>
+                  )}
+                  </TableCell>
                 <TableCell>
-                  {index < 2 ? (
+                  {item.type === 'date' ? (
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body1">10<sup></sup></Typography>
-                      <TextField
-                        value={item.value}
-                        onChange={(e) => handleAdditionalTableChange(e, index)}
-                        sx={{ width: '56px', ml: 1 }}
-                        InputProps={{
-                          inputProps: { style: { textAlign: 'center' } }
-                        }}
-                      />
-                    </Box>
+                    <Typography variant="body1">10<sup></sup></Typography>
+                    <TextField
+                      value={item.value}
+                      onChange={(e) => {
+                        const newTableData = [...additionalDataTable];
+                        newTableData[index + 2].value = e.target.value;
+                        setAdditionalDataTable(newTableData);
+                      }}
+                      sx={{ width: '56px', ml: 1 }}
+                      InputProps={{
+                        inputProps: { style: { textAlign: 'center' } }
+                      }}
+                    />
+                  </Box>
                   ) : (
                     <TextField
                       value={item.value}
-                      onChange={(e) => handleAdditionalTableChange(e, index)}
+                      onChange={(e) => {
+                        const newTableData = [...additionalDataTable];
+                        newTableData[index].value = e.target.value;
+                        setAdditionalDataTable(newTableData);
+                      }}
                       fullWidth
                     />
-                  )}
+                  )} 
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+      <Popper open={openDatePicker} anchorEl={anchorEl}>
+        <Paper>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DatePicker
+              value={selectedDates} // Use the selected date state variable
+              onChange={handleDateChange}
+              renderInput={(params) => <TextField {...params} />}
+            />
+          </LocalizationProvider>
+        </Paper>
+      </Popper>
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
         <TextField
           label="Name"
           value={technicianName}
-          onChange={(e) => setTechnicianName(e.target.value)}
+          onChange={handleTechnichianName}
           sx={{ flex: 1 }}
         />
         <Box

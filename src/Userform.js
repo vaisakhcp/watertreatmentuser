@@ -19,7 +19,7 @@ import CoolingTowerChemicalsComponent from './CoolingTowerChemicalsComponent';
 import NotesComponent from './NotesComponent';
 import dayjs from 'dayjs';
 import SignaturePad from 'react-signature-canvas';
-import 'dayjs/locale/en-gb'; 
+import 'dayjs/locale/en-gb';
 import { getDoc } from 'firebase/firestore';
 
 const theme = createTheme({
@@ -140,7 +140,7 @@ const Userform = () => {
 
   const handleSign = async () => {
     const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-    
+
     if (currentComponent === 'chilledWater1') {
       setChilledWaterSignature(signatureDataUrl);
     } else if (currentComponent === 'condenserChemicals1') {
@@ -173,9 +173,9 @@ const Userform = () => {
       case 'notes2':
         setNotesData(data);
         break;
-        case 'additionalData':
-          setAdditionalData(data);
-          break;
+      case 'additionalDataTable':
+        setAdditionalData(data);
+        break;
       default:
         break;
     }
@@ -187,7 +187,7 @@ const Userform = () => {
     try {
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
         ...item,
-        id: item.id || doc(collection(db, 'chilledWater1')).id
+        id: sanitizeDocumentReference(item.id || doc(collection(db, 'chilledWater1')).id)
       }));
       await setDoc(doc(db, 'chilledWater1', 'technicianInfo'), {
         name: technicianNameChilled,
@@ -202,9 +202,9 @@ const Userform = () => {
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
-      await handleSaveData('additionalTable', additionalData, '', plantName); // Save additionalData
+      await handleSaveData('additionalDataTable', additionalData, additionalDataLabels, plantName); // Save additionalData
       await handleSaveNotes();
-  
+
       toast.success('Report submitted successfully!');
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -224,9 +224,14 @@ const Userform = () => {
     }
 
     for (const row of data) {
-      const rowDoc = doc(db, collectionName, row.id || rowLabels[data.indexOf(row)]);
+      const sanitizedId = sanitizeDocumentReference(row.id || rowLabels[data.indexOf(row)]);
+      const rowDoc = doc(db, collectionName, sanitizedId);
       await setDoc(rowDoc, row);
     }
+  };
+
+  const sanitizeDocumentReference = (reference) => {
+    return reference.replace(/[^a-zA-Z0-9]/g, '_');
   };
 
   const handleSaveNotes = async () => {
@@ -234,10 +239,6 @@ const Userform = () => {
     await setDoc(notesDoc, { notes: notesData, name: noteName, signature: noteSignature });
   };
 
-  const handleSaveAdditionalData = async () => {
-    const notesDoc = doc(db, 'notes2', 'noteList');
-    await setDoc(notesDoc, { notes: additionalData});
-  };
   const handleClearAllData = async () => {
     setIsLoading(true);
     try {
@@ -247,8 +248,8 @@ const Userform = () => {
       await clearCollectionData('condenserChemicals1');
       await clearCollectionData('coolingTowerChemicals1');
       await clearCollectionData('notes2');
-      await clearCollectionData('additionalTable'); // Add any other collection you need to clear
-  
+      await clearCollectionData('additionalDataTable'); // Add any other collection you need to clear
+
       // Clear state data
       setCondenserWaterData([]);
       setChilledWaterData([]);
@@ -256,7 +257,7 @@ const Userform = () => {
       setCoolingTowerChemicalsData([]);
       setNotesData([]); // Add the state for notes
       setAdditionalData([]); // Add the state for additional table data
-  
+
       toast.success('Data cleared successfully!');
       window.location.reload();
     } catch (error) {
@@ -266,7 +267,7 @@ const Userform = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Function to clear a specific Firestore collection
   const clearCollectionData = async (collectionName) => {
     try {
@@ -280,7 +281,6 @@ const Userform = () => {
       console.error(`Error clearing data from ${collectionName}:`, error);
     }
   };
-  
 
   const condenserWaterLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const chilledWaterLabels = [new Date().toLocaleDateString()];
@@ -293,6 +293,16 @@ const Userform = () => {
     'Expired CHW Chemicals', 'Expired CT Chemicals'
   ];
 
+  const additionalDataLabels = [
+    'Condenser water dip slide test result as of: 30th October 2022',
+    'Chilled water dip slide test result as of: 02nd November 2022',
+    'Condenser system Make-up (m³ / USG)', 'Condenser system Blowdown (m³ / USG)',
+    'Chilled water system Make-up (m³ / USG)',
+    'C.O.C based on conductivity (Condenser/Make-up)',
+    'C.O.C based on (CT make-up/CT blowdown)',
+    'MIOX Running Hours (Hr.)'
+  ];
+
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsInitialLoading(true);
@@ -303,6 +313,7 @@ const Userform = () => {
         const condenserChemicalsSnapshot = await getDocs(collection(db, 'condenserChemicals1'));
         const coolingTowerChemicalsSnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
         const notesSnapshot = await getDocs(collection(db, 'notes2'));
+        const additionalDataSnapshot = await getDocs(collection(db, 'additionalDataTable'));
 
         // Process and set data accordingly
         setCondenserWaterData(condenserWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -310,6 +321,7 @@ const Userform = () => {
         setCondenserChemicalsData(condenserChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setCoolingTowerChemicalsData(coolingTowerChemicalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setNotesData(notesSnapshot.docs.map(doc => doc.data().notes).flat());
+        setAdditionalData(additionalDataSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
         // Fetch technician info
         const chilledWaterDocRef = doc(db, 'chilledWater1', 'technicianInfo');
@@ -378,7 +390,7 @@ const Userform = () => {
             </Grid>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3 ,gap: 2}}>
+        <Box sx={{ display: 'flex', justifyContent: 'right', mb: 3, gap: 2 }}>
           <Button variant="outlined" color="error" onClick={handleClearAllData}>Clear Data</Button>
           <Button variant="contained" color="primary" onClick={handleSaveAllData}>Submit report</Button>
         </Box>
@@ -421,7 +433,7 @@ const Userform = () => {
         <TabPanel value={tabIndex} index={3}>
           <CoolingTowerChemicalsComponent
             updateData={updateData}
-            onSaveAndExit={()=>handleSaveAllData('exit')} 
+            onSaveAndExit={() => handleSaveAllData('exit')}
             columnLabels={[`Available empty Jerry Cans in plants (${formattedWeekStart})`]}
             handleOpenSignatureModal={handleOpenSignatureModal}
             noteSignature={condenserChemicalsSignature}
@@ -479,7 +491,7 @@ const Userform = () => {
         >
           <img src={logo} alt="Logo" style={{ width: '120px', marginBottom: '20px' }} />
           <Typography id="overlay-modal-title" variant="h5" component="h2" gutterBottom>
-          Your data has been successfully saved.
+            Your data has been successfully saved.
           </Typography>
           <Button variant="contained" color="primary" sx={{ mt: 3 }} onClick={() => setIsOverlayModalOpen(false)}>Close</Button>
         </Box>

@@ -3,11 +3,12 @@ import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import {
-  Box, TextField, Button, Modal, Typography, useMediaQuery
+  Box, TextField, Button, Modal, Typography, useMediaQuery, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, List, Divider
 } from '@mui/material';
-import TableComponent from './TableComponent';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 
-const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnicianName, noteSignature, setNoteSignature, handleOpenSignatureModal }) => {
+const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnicianName, noteSignature, setNoteSignature }) => {
   const [condenserChemicalsData, setCondenserChemicalsData] = useState([]);
   const condenserChemicalsLabels = [
     'PM3601 (25Kg)', 'Biocide AQ', 'PF CC6202 (20Kg)', 'PDV Salt (25Kg)', 'Sodium Hypochlorite (25 kg)',
@@ -17,6 +18,8 @@ const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnician
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const sigPadRef = useRef(null);
   const isMobile = useMediaQuery('(max-width:600px)');
+  const [currentRow, setCurrentRow] = useState(null);
+  const [currentColumn, setCurrentColumn] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,7 +46,9 @@ const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnician
     updateData('condenserChemicals1', condenserChemicalsData);
   }, [condenserChemicalsData, updateData]);
 
-  const openLocalSignatureModal = () => {
+  const openLocalSignatureModal = (rowIndex, columnKey) => {
+    setCurrentRow(rowIndex);
+    setCurrentColumn(columnKey);
     setOpenSignatureModal(true);
   };
 
@@ -56,18 +61,126 @@ const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnician
       signature: signatureDataUrl,
     });
 
+    if (currentRow !== null && currentColumn !== null) {
+      const newData = [...condenserChemicalsData];
+      newData[currentRow][currentColumn] = signatureDataUrl;
+      setCondenserChemicalsData(newData);
+    }
+
     setOpenSignatureModal(false);
+  };
+
+  const handleChange = (e, rowIndex, columnKey) => {
+    const newData = [...condenserChemicalsData];
+    if (!newData[rowIndex]) {
+      newData[rowIndex] = {};
+    }
+    newData[rowIndex][columnKey] = e.target.value;
+    if (columnKey === 'Closing Stock (Kg)') {
+      const openingStock = parseFloat(newData[rowIndex]['Opening Stock (Kg)'] || 0);
+      const closingStock = parseFloat(newData[rowIndex]['Closing Stock (Kg)'] || 0);
+      newData[rowIndex]['Consumption (Kg)'] = openingStock - closingStock;
+    }
+    setCondenserChemicalsData(newData);
+  };
+
+  const handleDateChange = (date, rowIndex) => {
+    const newData = [...condenserChemicalsData];
+    newData[rowIndex]['Day'] = date;
+    setCondenserChemicalsData(newData);
   };
 
   return (
     <>
-      <TableComponent
-        collectionName="condenserChemicals1"
-        rowLabels={condenserChemicalsLabels}
-        columnLabels={condenserChemicalsColumns}
-        defaultRows={condenserChemicalsData}
-        updateData={updateData}
-      />
+      {isMobile ? (
+        <List>
+          {condenserChemicalsLabels.map((rowLabel, rowIndex) => (
+            <Box key={rowIndex} sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>{rowLabel}</Typography>
+              {condenserChemicalsColumns.map((col, colIndex) => (
+                col !== 'Signature' && (
+                  <Box key={colIndex} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" sx={{ flex: 1 }}>{col}:</Typography>
+                    <TextField
+                      value={condenserChemicalsData[rowIndex]?.[col] || ''}
+                      onChange={(e) => handleChange(e, rowIndex, col)}
+                      InputProps={{ sx: { padding: 0, height: '56px' } }}
+                      sx={{ flex: 2 }}
+                      variant="standard"
+                      disabled={col === 'Consumption (Kg)'}
+                    />
+                  </Box>
+                )
+              ))}
+              {condenserChemicalsColumns.includes('Signature') && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" sx={{ flex: 1 }}>Signature:</Typography>
+                  <div
+                    onClick={() => openLocalSignatureModal(rowIndex, 'Signature')}
+                    style={{ cursor: 'pointer', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
+                  >
+                    {condenserChemicalsData[rowIndex]?.['Signature'] ? (
+                      <img src={condenserChemicalsData[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                    ) : (
+                      'Sign'
+                    )}
+                  </div>
+                </Box>
+              )}
+              <Divider />
+            </Box>
+          ))}
+        </List>
+      ) : (
+        <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
+          <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px' }}>Stocks</TableCell>
+                {condenserChemicalsColumns.map((col, index) => (
+                  <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '14px', padding: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {col}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {condenserChemicalsLabels.map((rowLabel, rowIndex) => (
+                <React.Fragment key={rowIndex}>
+                  <TableRow>
+                    <TableCell sx={{ padding: '8px' }}>{rowLabel}</TableCell>
+                    {condenserChemicalsColumns.map((col, colIndex) => (
+                      col === 'Signature' ? (
+                        <TableCell key={colIndex} sx={{ padding: '8px', display: 'flex', justifyContent: 'center', height: '56px' }}>
+                          <div
+                            onClick={() => openLocalSignatureModal(rowIndex, 'Signature')}
+                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
+                          >
+                            {condenserChemicalsData[rowIndex]?.['Signature'] ? (
+                              <img src={condenserChemicalsData[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                            ) : (
+                              'Sign'
+                            )}
+                          </div>
+                        </TableCell>
+                      ) : (
+                        <TableCell key={colIndex} sx={{ padding: '8px' }}>
+                          <TextField
+                            value={condenserChemicalsData[rowIndex]?.[col] || ''}
+                            onChange={(e) => handleChange(e, rowIndex, col)}
+                            InputProps={{ sx: { padding: 0, height: '56px' } }}
+                            disabled={col === 'Consumption (Kg)'}
+                          />
+                        </TableCell>
+                      )
+                    ))}
+                  </TableRow>
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 3 }}>
         <TextField
           label="Name"
@@ -85,7 +198,7 @@ const CondenserChemicalsComponent = ({ updateData, technicianName, setTechnician
             cursor: 'pointer',
             height: '50px',
           }}
-          onClick={openLocalSignatureModal}
+          onClick={() => openLocalSignatureModal(null, 'Signature')}
         >
           {noteSignature ? (
             <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />

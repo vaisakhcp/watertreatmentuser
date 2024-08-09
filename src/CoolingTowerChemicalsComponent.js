@@ -180,7 +180,6 @@ const [currentRow, setCurrentRow] = useState(null);
 
   return (
     <>
-      {JSON.stringify(coolingTowerChemicalsLabels)}
       <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
         <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
           <TableHead>

@@ -20,7 +20,7 @@ import NotesComponent from './NotesComponent';
 import dayjs from 'dayjs';
 import SignaturePad from 'react-signature-canvas';
 import 'dayjs/locale/en-gb';
-import { getDoc ,query,where} from 'firebase/firestore';
+import { getDoc, query, where } from 'firebase/firestore';
 
 const theme = createTheme({
   palette: {
@@ -105,10 +105,7 @@ const Userform = () => {
   const [technicianNameChemicals, setTechnicianNameChemicals] = useState('');
   const [technicianNameCooling, setTechnicianNameCooling] = useState('');
   const [coolingTechnicalName, setCoolingTechnicalName] = useState('');
-  const [technicianName, setTechnicianName] = useState('');
   const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
-  
-  
   const [chilledWaterSignature, setChilledWaterSignature] = useState('');
   const [condenserChemicalsSignature, setCondenserChemicalsSignature] = useState('');
   const [isOverlayModalOpen, setIsOverlayModalOpen] = useState(false);
@@ -177,6 +174,7 @@ const Userform = () => {
         setCoolingTowerChemicalsData(data);
         break;
       case 'notes':
+        console.log('asdsad',data)
         setNotesData(data);
         break;
       case 'additionalDataTable':
@@ -187,9 +185,9 @@ const Userform = () => {
     }
   };
 
-  
   const handleSaveAllData = async (params) => {
     setIsLoading(true);
+
     const plantName = "AD-001";
     try {
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
@@ -208,15 +206,20 @@ const Userform = () => {
         name: technicianNameCooling, // Assuming this is the name for Cooling Tower Chemicals
         signature: coolingTowerChemicalsSignature,
       });
-
+      console.log('chilledWaterDataWithId',chilledWaterDataWithId)
+      console.log('condenserWaterData',condenserWaterData)
+      console.log('condenserChemicalsData',condenserChemicalsData)
+      console.log('coolingTowerChemicalsData',coolingTowerChemicalsData)
+      console.log('additionalData',notesData)
+      console.log('',)
+      console.log('',)
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
-      await handleSaveData('notes2', notesData, '', plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
-      await handleSaveData('additionalDataTable', additionalData ,additionalDataLabels, plantName); // Save additionalData
+      await handleSaveData('additionalDataTable', additionalData, additionalDataLabels, plantName); // Save additionalData
       await handleSaveNotes();
-  
+
       toast.success('Report submitted successfully!');
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -231,7 +234,7 @@ const Userform = () => {
   };
 
   const handleSaveData = async (collectionName, data, rowLabels) => {
-    console.log(collectionName,data)
+    console.log(collectionName, data)
     if (!Array.isArray(data)) {
       data = [data];
     }
@@ -247,8 +250,21 @@ const Userform = () => {
   };
 
   const handleSaveNotes = async () => {
-    const notesDoc = doc(db, 'notes', 'noteList');
-    await setDoc(notesDoc, { notes: notesData, name: noteName, signature: noteSignature });
+    try {
+      const notesDocRef = doc(db, 'notes', 'noteList'); // Updated to use 'notes'
+      console.log("Saving Notes:", { notes: notesData, name: noteName, signature: noteSignature });
+
+      await setDoc(notesDocRef, {
+        notes: notesData,  // Ensure that the notes array is saved correctly
+        name: noteName,
+        signature: noteSignature
+      });
+
+      console.log("Notes successfully saved.");
+    } catch (error) {
+      console.error("Error saving notes to Firestore:", error);
+      alert("Failed to save notes. Please try again.");
+    }
   };
 
   const handleClearAllData = async () => {
@@ -306,12 +322,9 @@ const Userform = () => {
   ];
 
   const additionalDataLabels = [
-    'Condenser water dip slide test result as of: 30th October 2022',
-    'Chilled water dip slide test result as of: 02nd November 2022',
-    'Condenser system Make-up (m³ / USG)', 'Condenser system Blowdown (m³ / USG)',
-    'Chilled water system Make-up (m³ / USG)',
-    'C.O.C based on conductivity (Condenser/Make-up)',
-    'C.O.C based on (CT make-up/CT blowdown)',
+    'Condenser water dip slide test result as of: ', 'Chilled water dip slide test result as of: ',
+    'Condenser system Make-up (m³ / USG)', 'Condenser system Blowdown (m³ / USG)', 'Condenser system Blowdown (m³ / USG)',
+    'Chilled water system Make-up (m³ / USG)', 'C.O.C based on conductivity (Condenser/Make-up)', 'C.O.C based on (CT make-up/CT blowdown)',
     'MIOX Running Hours (Hr.)'
   ];
 
@@ -329,7 +342,6 @@ const Userform = () => {
         const coolingTowerChemicalsSnapshot = await getDocs(query(collection(db, 'coolingTowerChemicals1'), where('plantName', '==', plantName)));
         const notesSnapshot = await getDocs(query(collection(db, 'notes'), where('plantName', '==', plantName)));
         const additionalDataSnapshot = await getDocs(query(collection(db, 'additionalDataTable'), where('plantName', '==', plantName)));
-  
 
         // Process and set data accordingly
         setCondenserWaterData(condenserWaterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -398,7 +410,7 @@ const Userform = () => {
           </Grid>
           <Grid item xs={12} sm={4} md={3} marginTop={3}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker inputFormat="DD/MM/YYYY" 
+              <DatePicker inputFormat="DD/MM/YYYY"
                 views={['year', 'month', 'day']}
                 value={weekCommencing} onChange={handleDateChange}
                 label="Select Week"
@@ -469,7 +481,6 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
           <NotesComponent
-            
             noteSignature={noteSignature}
             setNoteSignature={setNoteSignature}
             handleSaveNotes={handleSaveNotes}

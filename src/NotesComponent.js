@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, getDoc, setDoc, doc } from 'firebase/firestore';
+import { getDoc, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import { TextField, List, ListItem, ListItemText, IconButton, Box, Typography, Button, Modal } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SignaturePad from 'react-signature-canvas';
 
-const NotesComponent = ({ noteSignature, setNoteSignature, handleSaveNotes, noteName, setNoteName }) => {
+const NotesComponent = ({ noteSignature, setNoteSignature, handleSaveNotes, noteName, setNoteName ,updateData}) => {
   const [noteList, setNoteList] = useState([]);
   const [noteInput, setNoteInput] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
@@ -13,25 +13,32 @@ const NotesComponent = ({ noteSignature, setNoteSignature, handleSaveNotes, note
 
   useEffect(() => {
     const fetchNotes = async () => {
-      try {
-        const docRef = doc(db, 'notes', 'noteList');
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setNoteList(data.notes || []);
-          setNoteSignature(data.signature || '');
-          setNoteName(data.name || '');
-        } else {
-          console.log('No such document!');
+        try {
+            const notesDocRef = doc(db, 'notes', 'noteList');
+            const notesDocSnap = await getDoc(notesDocRef);
+
+            if (notesDocSnap.exists()) {
+                const data = notesDocSnap.data();
+                
+                // Ensure notes is an array
+                setNoteList(Array.isArray(data.notes) ? data.notes : []);
+                setNoteName(data.name || '');
+                setNoteSignature(data.signature || '');
+                
+                console.log("Fetched Notes:", data);
+            } else {
+                console.log('No notes found!');
+            }
+        } catch (error) {
+            console.error("Error fetching notes from Firestore:", error);
         }
-      } catch (error) {
-        console.error('Error fetching notes:', error);
-      }
     };
 
     fetchNotes();
-  }, [setNoteSignature, setNoteName]);
+}, [setNoteSignature, setNoteName]);
+useEffect(() => {
+  updateData('notes', noteList);
+}, [noteList,updateData]);
 
   const handleAddNote = () => {
     if (noteInput.trim()) {
@@ -46,14 +53,14 @@ const NotesComponent = ({ noteSignature, setNoteSignature, handleSaveNotes, note
     setNoteList(newList);
   };
 
-  const saveNotesToFirestore = async () => {
-    try {
-      const docRef = doc(db, 'notes', 'noteList');
-      await setDoc(docRef, { notes: noteList, signature: noteSignature, name: noteName });
-    } catch (error) {
-      console.error('Error saving notes to Firestore:', error);
-    }
-  };
+const saveNotesToFirestore = async () => {
+  try {
+    const docRef = doc(db, 'notes', 'noteList'); // Changed collection name to 'notes'
+    await setDoc(docRef, { notes: noteList, signature: noteSignature, name: noteName }); // Corrected the field name to 'notes'
+  } catch (error) {
+    console.error('Error saving notes to Firestore:', error);
+  }
+};
 
   const handleSaveAndExit = async () => {
     await saveNotesToFirestore();

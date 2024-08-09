@@ -170,7 +170,7 @@ const Userform = () => {
       case 'coolingTowerChemicals1':
         setCoolingTowerChemicalsData(data);
         break;
-      case 'notes2':
+      case 'notes':
         setNotesData(data);
         break;
       case 'additionalDataTable':
@@ -197,8 +197,9 @@ const Userform = () => {
         name: technicianNameChemicals,
         signature: condenserChemicalsSignature,
       });
+      console.log('datanote',notesData)
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
-      await handleSaveData('notes2', notesData, '', plantName);
+      await handleSaveData('notes', notesData, '', plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
@@ -235,7 +236,7 @@ const Userform = () => {
   };
 
   const handleSaveNotes = async () => {
-    const notesDoc = doc(db, 'notes2', 'noteList');
+    const notesDoc = doc(db, 'notes', 'noteList');
     await setDoc(notesDoc, { notes: notesData, name: noteName, signature: noteSignature });
   };
 
@@ -247,7 +248,7 @@ const Userform = () => {
       await clearCollectionData('chilledWater1');
       await clearCollectionData('condenserChemicals1');
       await clearCollectionData('coolingTowerChemicals1');
-      await clearCollectionData('notes2');
+      await clearCollectionData('notes');
       await clearCollectionData('additionalDataTable'); // Add any other collection you need to clear
 
       // Clear state data
@@ -315,7 +316,7 @@ const Userform = () => {
         const chilledWaterSnapshot = await getDocs(query(collection(db, 'chilledWater1'), where('plantName', '==', plantName)));
         const condenserChemicalsSnapshot = await getDocs(query(collection(db, 'condenserChemicals1'), where('plantName', '==', plantName)));
         const coolingTowerChemicalsSnapshot = await getDocs(query(collection(db, 'coolingTowerChemicals1'), where('plantName', '==', plantName)));
-        const notesSnapshot = await getDocs(query(collection(db, 'notes2'), where('plantName', '==', plantName)));
+        const notesSnapshot = await getDocs(query(collection(db, 'notes'), where('plantName', '==', plantName)));
         const additionalDataSnapshot = await getDocs(query(collection(db, 'additionalDataTable'), where('plantName', '==', plantName)));
   
 
@@ -344,7 +345,7 @@ const Userform = () => {
           setCondenserChemicalsSignature(signature || '');
         }
 
-        const notesDocRef = doc(db, 'notes2', 'technicianInfo');
+        const notesDocRef = doc(db, 'notes', 'technicianInfo');
         const notesDocSnap = await getDoc(notesDocRef);
         if (notesDocSnap.exists()) {
           const { name, signature } = notesDocSnap.data();
@@ -404,7 +405,7 @@ const Userform = () => {
             <Tab label="Condenser Water" />
             <Tab label="Chilled Water" />
             <Tab label="Condenser Chemicals" />
-            <Tab label="Cooling Tower Chemicals" />
+            <Tab label="CT Cleaning Chemicals" />
             <Tab label="Notes" />
           </Tabs>
         </Box>
@@ -445,11 +446,13 @@ const Userform = () => {
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>
           <NotesComponent
+            
             noteSignature={noteSignature}
-            handleOpenSignatureModal={() => handleOpenSignatureModal('notes')}
+            setNoteSignature={setNoteSignature}
             handleSaveNotes={handleSaveNotes}
             noteName={noteName}
             setNoteName={setNoteName}
+            handleOpenSignatureModal={() => handleOpenSignatureModal('notes')}
             updateData={updateData}
           />
         </TabPanel>

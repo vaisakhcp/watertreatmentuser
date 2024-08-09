@@ -12,7 +12,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, noteSignature, handleOpenSignatureModal }) => {
   const [chilledWaterData, setChilledWaterData] = useState([]);
   const chilledWaterLabels = [new Date().toLocaleDateString()];
-  const chilledWaterColumns = ['Day', 'Conductivity', 'Action'];
+  const chilledWaterColumns = ['Day', 'Conductivity(µS/cm)', 'Action'];
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const [currentRow, setCurrentRow] = useState(null);
   const [currentColumn, setCurrentColumn] = useState(null);
@@ -102,11 +102,11 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
                     onClick={() => openLocalSignatureModal(rowIndex, 'Signature')}
                     style={{ cursor: 'pointer', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
                   >
-                    {chilledWaterData[rowIndex]?.['Signature'] ? (
-                      <img src={chilledWaterData[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                    ) : (
-                      'Sign'
-                    )}
+                {chilledWaterData[rowIndex]?.['Signature'] ? (
+                  <img src={chilledWaterData[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                ) : (
+                  'Sign'
+                )}
                   </div>
                 </Box>
               )}

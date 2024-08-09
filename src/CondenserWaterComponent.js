@@ -6,7 +6,7 @@ import TableComponent from './TableComponent';
 const CondenserWaterComponent = ({ updateData }) => {
   const [condenserWaterData, setCondenserWaterData] = useState([]);
   const condenserWaterLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const condenserWaterColumns = ['Makeup Conductivity', 'Condenser Conductivity', 'Free Chlorine', 'Action', 'Name', 'Signature'];
+  const condenserWaterColumns = ['Makeup Conductivity (µS/cm)', 'Condenser Conductivity (µS/cm)', 'Free Chlorine', 'Action', 'Name', 'Signature'];
 
   useEffect(() => {
     const fetchData = async () => {

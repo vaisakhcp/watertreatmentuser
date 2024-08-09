@@ -8,23 +8,33 @@ import {
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { format } from 'date-fns';
 
-const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, noteSignature, handleOpenSignatureModal }) => {
+const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, handleOpenSignatureModal }) => {
   const [chilledWaterData, setChilledWaterData] = useState([]);
-  const chilledWaterLabels = [new Date().toLocaleDateString()];
+  const chilledWaterLabels = [new Date().toLocaleDateString('en-GB')];
   const chilledWaterColumns = ['Day', 'Conductivity(µS/cm)', 'Action'];
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const [currentRow, setCurrentRow] = useState(null);
   const [currentColumn, setCurrentColumn] = useState(null);
   const sigPadRef = useRef(null);
   const isMobile = useMediaQuery('(max-width:600px)');
-
+  const [noteSignature, setNoteSignature] = useState('');
   useEffect(() => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'chilledWater1'));
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setChilledWaterData(data);
+        
+        // Find the name and signature data
+        const nameData = data.find(item => item.id === 'technicianInfo');
+        if (nameData) {
+          setTechnicianName(nameData.name || '');
+          setNoteSignature(nameData.signature || '');
+        }
+  
+        // Store the rest of the data
+        setChilledWaterData(data.filter(item => item.id !== 'technicianInfo'));
       } catch (error) {
         console.error('Error fetching chilled water data:', error);
       }
@@ -53,26 +63,28 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
 
   const handleSign = async () => {
     const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-    const newRows = [...chilledWaterData];
-    if (!newRows[currentRow]) {
-      newRows[currentRow] = {};
-    }
-    newRows[currentRow][currentColumn] = signatureDataUrl;
-    setChilledWaterData(newRows);
-
-    const rowDoc = doc(db, 'chilledWater1', newRows[currentRow].id || chilledWaterLabels[currentRow]);
-    await setDoc(rowDoc, newRows[currentRow]);
-
+    setNoteSignature(signatureDataUrl);
     setOpenSignatureModal(false);
+
+    // Save the updated name and signature to Firestore
+    try {
+      await setDoc(doc(db, 'chilledWater1', 'technicianInfo'), {
+        name: technicianName,
+        signature: signatureDataUrl
+      });
+    } catch (error) {
+      console.error('Error saving signature:', error);
+    }
   };
 
+
   const handleDateChange = (date, rowIndex) => {
-    const newRows = [...chilledWaterData];
-    if (!newRows[rowIndex]) {
-      newRows[rowIndex] = {};
-    }
-    newRows[rowIndex]['Day'] = date;
-    setChilledWaterData(newRows);
+    const formattedDate = format(date, 'dd/MM/yyyy'); // Format date as DD/MM/YYYY
+    setChilledWaterData(prev => {
+      const newData = [...prev];
+      newData[rowIndex] = { ...newData[rowIndex], Day: formattedDate };
+      return newData;
+    });
   };
   return (
     <>
@@ -102,11 +114,11 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
                     onClick={() => openLocalSignatureModal(rowIndex, 'Signature')}
                     style={{ cursor: 'pointer', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 2 }}
                   >
-                {chilledWaterData[rowIndex]?.['Signature'] ? (
-                  <img src={chilledWaterData[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
-                ) : (
-                  'Sign'
-                )}
+                    {chilledWaterData[rowIndex]?.['Signature'] ? (
+                      <img src={chilledWaterData[rowIndex]?.['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
+                    ) : (
+                      'Sign'
+                    )}
                   </div>
                 </Box>
               )}
@@ -137,6 +149,7 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
                             onClick={() => openLocalSignatureModal(rowIndex, 'Signature')}
                             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px' }}
                           >
+                          
                             {chilledWaterData[rowIndex]?.['Signature'] ? (
                               <img src={chilledWaterData[rowIndex]['Signature']} alt="Signature" style={{ width: '100px', height: '50px' }} />
                             ) : (
@@ -145,22 +158,23 @@ const ChilledWaterComponent = ({ updateData, technicianName, setTechnicianName, 
                           </div>
                         </TableCell>
                       ) : (
-                        <TableCell key={colIndex} sx={{ padding: '8px' }}>
-                          {col === 'Day' ? (
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                              <DatePicker
-                                value={chilledWaterData[rowIndex]?.[col] || null}
-                                onChange={(newValue) => handleDateChange(newValue, rowIndex)}
-                                renderInput={(params) => <TextField {...params} />}
-                              />
-                            </LocalizationProvider>
-                          ) : (
-                            <TextField
-                              value={chilledWaterData[rowIndex]?.[col] || ''}
-                              onChange={(e) => handleChange(e, rowIndex, col)}
-                              InputProps={{ sx: { padding: 0, height: '56px' } }}
-                            />
-                          )}
+                          <TableCell key={colIndex} sx={{ padding: '8px' }}>
+                         {col === 'Day' ? (
+  <LocalizationProvider dateAdapter={AdapterDateFns}>
+    <DatePicker
+      value={chilledWaterData[rowIndex]?.[col] ? new Date(chilledWaterData[rowIndex][col].split('/').reverse().join('-')) : null}
+      onChange={(newValue) => handleDateChange(newValue, rowIndex)}
+      renderInput={(params) => <TextField {...params} />}
+      inputFormat="dd/MM/yyyy" // Set the input format to DD/MM/YYYY
+    />
+  </LocalizationProvider>
+) : (
+  <TextField
+    value={chilledWaterData[rowIndex]?.[col] || ''}
+    onChange={(e) => handleChange(e, rowIndex, col)}
+    InputProps={{ sx: { padding: 0, height: '56px' } }}
+  />
+)}
                         </TableCell>
                       )
                     ))}

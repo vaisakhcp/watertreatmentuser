@@ -44,7 +44,7 @@ useEffect(() => {
     if (noteInput.trim()) {
       const newNoteList = [...noteList, noteInput.trim()];
       setNoteList(newNoteList);
-      setNoteInput('');
+      setNoteInput('');  handleSaveNotes()
     }
   };
 
@@ -134,9 +134,7 @@ const saveNotesToFirestore = async () => {
             )}
           </Box>
         </Box>
-        <Button variant="contained" color="primary" onClick={handleSaveAndExit} sx={{ mt: 2 }}>
-          Save and Exit
-        </Button>
+       
       </Box>
 
       <Modal

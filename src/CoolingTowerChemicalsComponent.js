@@ -13,20 +13,25 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 
 const CoolingTowerChemicalsComponent = ({ updateData,setTechnicianName,technicianName, noteSignature, setNoteSignature  }) => {
   const [coolingTowerChemicalsLabels, setCoolingTowerChemicalsLabels] = useState([
-    { label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
-    { label: 'Sodium Hypochlorite (25Kg)', value: '', action: '' },
-    { label: 'Phosphoric Acid (35Kg)', value: '', action: '' },
-    { label: 'Expired CHW Chemicals', value: '', action: '' },
-    { label: 'Expired CT Chemicals', value: '', action: '' }
+    { id:'Hydrochloric Acid', label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
+    { id:'Sodium Hypochlorite (25Kg)',label: 'Sodium Hypochlorite (25Kg)', value: '', action: '' },
+    { id:'Phosphoric Acid (35Kg)',label: 'Phosphoric Acid (35Kg)', value: '', action: '' },
+    { id:'Expired CHW Chemicals',label: 'Expired CHW Chemicals', value: '', action: '' },
+    { id:'Expired CT Chemicals',label: 'Expired CT Chemicals', value: '', action: '' }
   ]);
   const additionalDataTableOrder = ['Condenser water dip slide test result as of: ', 'Chilled water dip slide test result as of: ',
-    'Condenser system Make-up (m³ / USG)', 'Condenser system Blowdown (m³ / USG)', 'Condenser system Blowdown (m³ / USG)',
+    'Condenser system Make-up (m³ / USG)', 'Condenser system Blowdown (m³ / USG)',
     'Chilled water system Make-up (m³ / USG)', 'C.O.C based on conductivity (Condenser/Make-up)', 'C.O.C based on (CT make-up/CT blowdown)',
   'MIOX Running Hours (Hr.)'
 ]
-  const [additionalDataTable, setAdditionalDataTable] = useState(
-    additionalDataTableOrder.map(label => ({ label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }))
-  );
+const [additionalDataTable, setAdditionalDataTable] = useState(
+  additionalDataTableOrder.map(label => ({
+    id: label.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''), // Generate a unique id based on the label
+    label,
+    value: '',
+    type: label.includes('result as of: ') ? 'date' : 'text'
+  }))
+);
 
   const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
@@ -62,7 +67,6 @@ const CoolingTowerChemicalsComponent = ({ updateData,setTechnicianName,technicia
 
 
 
-      console.log('casc',chemicalsData)
       if (chemicalsData.length > 0) {
         const filteredChemicalsData = chemicalsData.filter(item => 
           !['technicianInfo'].includes(item.id)
@@ -82,10 +86,18 @@ const CoolingTowerChemicalsComponent = ({ updateData,setTechnicianName,technicia
       }
       // Process additional data
       const additionalData = additionalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('asdd 1',additionalData)
+
       if (additionalData.length > 0) {
-        const sortedAdditionalData = additionalDataTableOrder.map(label => 
-          additionalData.find(item => item.label === label) || { label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }
-        );
+         const sortedAdditionalData = additionalDataTableOrder.map(label => 
+            additionalData.find(item => item.label === label) || {
+              id: label.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''), // Generate id
+              label,
+              value: '',
+              type: label.includes('result as of: ') ? 'date' : 'text'
+            }
+          );
+        console.log('asdd 2',additionalData)
         setAdditionalDataTable(sortedAdditionalData);
       }
 

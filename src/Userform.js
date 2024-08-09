@@ -174,7 +174,6 @@ const Userform = () => {
         setCoolingTowerChemicalsData(data);
         break;
       case 'notes':
-        console.log('asdsad',data)
         setNotesData(data);
         break;
       case 'additionalDataTable':
@@ -187,59 +186,68 @@ const Userform = () => {
 
   const handleSaveAllData = async (params) => {
     setIsLoading(true);
-
+  
     const plantName = "AD-001";
     try {
+      // Ensure data is available before proceeding
+      if (!chilledWaterData || !condenserWaterData) {
+        throw new Error("Data not loaded properly.");
+      }
+  
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
         ...item,
         id: item.id || doc(collection(db, 'chilledWater1')).id
       }));
+  
+      // Save technician info and signatures
       await setDoc(doc(db, 'chilledWater1', 'technicianInfo'), {
         name: technicianNameChilled,
         signature: chilledWaterSignature,
       });
+  
       await setDoc(doc(db, 'condenserChemicals1', 'technicianInfo'), {
         name: technicianNameChemicals,
         signature: condenserChemicalsSignature,
       });
+  
       await setDoc(doc(db, 'coolingTowerChemicals1', 'technicianInfo'), {
-        name: technicianNameCooling, // Assuming this is the name for Cooling Tower Chemicals
+        name: technicianNameCooling,
         signature: coolingTowerChemicalsSignature,
       });
-      console.log('chilledWaterDataWithId',chilledWaterDataWithId)
-      console.log('condenserWaterData',condenserWaterData)
-      console.log('condenserChemicalsData',condenserChemicalsData)
-      console.log('coolingTowerChemicalsData',coolingTowerChemicalsData)
-      console.log('additionalData',notesData)
-      console.log('',)
-      console.log('',)
+  
+      // Save the data for each collection
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
-      await handleSaveData('additionalDataTable', additionalData, additionalDataLabels, plantName); // Save additionalData
+      await handleSaveData('additionalDataTable', additionalData, additionalDataLabels, plantName);
+  
+      // Save notes
       await handleSaveNotes();
-
+  
       toast.success('Report submitted successfully!');
     } catch (error) {
-      console.error('Error submitting report:', error);
+      console.error('Error submitting report:', error.message);  // Log the specific error message
       toast.error('Error submitting report. Please try again.');
     } finally {
       setIsLoading(false);
     }
-
+  
     if (params === 'exit') {
       setIsOverlayModalOpen(true);
     }
   };
+  
 
   const handleSaveData = async (collectionName, data, rowLabels) => {
-    console.log(collectionName, data)
     if (!Array.isArray(data)) {
       data = [data];
     }
 
     for (const row of data) {
+      console.log('collectionName',collectionName)
+      console.log('data',data)
+      console.log('rowLabels',rowLabels)
       const rowDoc = doc(db, collectionName, row.id || rowLabels[data.indexOf(row)]);
       await setDoc(rowDoc, row);
     }
@@ -252,7 +260,6 @@ const Userform = () => {
   const handleSaveNotes = async () => {
     try {
       const notesDocRef = doc(db, 'notes', 'noteList'); // Updated to use 'notes'
-      console.log("Saving Notes:", { notes: notesData, name: noteName, signature: noteSignature });
 
       await setDoc(notesDocRef, {
         notes: notesData,  // Ensure that the notes array is saved correctly
@@ -260,9 +267,7 @@ const Userform = () => {
         signature: noteSignature
       });
 
-      console.log("Notes successfully saved.");
     } catch (error) {
-      console.error("Error saving notes to Firestore:", error);
       alert("Failed to save notes. Please try again.");
     }
   };
@@ -289,7 +294,6 @@ const Userform = () => {
       toast.success('Data cleared successfully!');
       window.location.reload();
     } catch (error) {
-      console.error('Error clearing data:', error);
       toast.error('Error clearing data. Please try again.');
     } finally {
       setIsLoading(false);

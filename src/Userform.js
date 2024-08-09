@@ -103,6 +103,12 @@ const Userform = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [technicianNameChilled, setTechnicianNameChilled] = useState('');
   const [technicianNameChemicals, setTechnicianNameChemicals] = useState('');
+  const [technicianNameCooling, setTechnicianNameCooling] = useState('');
+  const [coolingTechnicalName, setCoolingTechnicalName] = useState('');
+  const [technicianName, setTechnicianName] = useState('');
+  const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
+  
+  
   const [chilledWaterSignature, setChilledWaterSignature] = useState('');
   const [condenserChemicalsSignature, setCondenserChemicalsSignature] = useState('');
   const [isOverlayModalOpen, setIsOverlayModalOpen] = useState(false);
@@ -181,13 +187,14 @@ const Userform = () => {
     }
   };
 
+  
   const handleSaveAllData = async (params) => {
     setIsLoading(true);
-    const plantName = "AD-008";
+    const plantName = "AD-001";
     try {
       const chilledWaterDataWithId = chilledWaterData.map(item => ({
         ...item,
-        id: sanitizeDocumentReference(item.id || doc(collection(db, 'chilledWater1')).id)
+        id: item.id || doc(collection(db, 'chilledWater1')).id
       }));
       await setDoc(doc(db, 'chilledWater1', 'technicianInfo'), {
         name: technicianNameChilled,
@@ -197,15 +204,19 @@ const Userform = () => {
         name: technicianNameChemicals,
         signature: condenserChemicalsSignature,
       });
-      console.log('datanote',notesData)
+      await setDoc(doc(db, 'coolingTowerChemicals1', 'technicianInfo'), {
+        name: technicianNameCooling, // Assuming this is the name for Cooling Tower Chemicals
+        signature: coolingTowerChemicalsSignature,
+      });
+
       await handleSaveData('condenserWater1', condenserWaterData, condenserWaterLabels, plantName);
-      await handleSaveData('notes', notesData, '', plantName);
+      await handleSaveData('notes2', notesData, '', plantName);
       await handleSaveData('chilledWater1', chilledWaterDataWithId, chilledWaterLabels, plantName);
       await handleSaveData('condenserChemicals1', condenserChemicalsData, condenserChemicalsLabels, plantName);
       await handleSaveData('coolingTowerChemicals1', coolingTowerChemicalsData, coolingTowerChemicalsLabels, plantName);
-      await handleSaveData('additionalDataTable', additionalData, additionalDataLabels, plantName); // Save additionalData
+      await handleSaveData('additionalDataTable', additionalData ,additionalDataLabels, plantName); // Save additionalData
       await handleSaveNotes();
-
+  
       toast.success('Report submitted successfully!');
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -220,13 +231,13 @@ const Userform = () => {
   };
 
   const handleSaveData = async (collectionName, data, rowLabels) => {
+    console.log(collectionName,data)
     if (!Array.isArray(data)) {
       data = [data];
     }
 
     for (const row of data) {
-      const sanitizedId = sanitizeDocumentReference(row.id || rowLabels[data.indexOf(row)]);
-      const rowDoc = doc(db, collectionName, sanitizedId);
+      const rowDoc = doc(db, collectionName, row.id || rowLabels[data.indexOf(row)]);
       await setDoc(rowDoc, row);
     }
   };
@@ -338,11 +349,19 @@ const Userform = () => {
         }
 
         const condenserChemicalsDocRef = doc(db, 'condenserChemicals1', 'technicianInfo');
+        const coolingChemicalsDocRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo');
         const condenserChemicalsDocSnap = await getDoc(condenserChemicalsDocRef);
         if (condenserChemicalsDocSnap.exists()) {
           const { name, signature } = condenserChemicalsDocSnap.data();
           setTechnicianNameChemicals(name || '');
           setCondenserChemicalsSignature(signature || '');
+        }
+        const coolingChemicalsDocSnap = await getDoc(coolingChemicalsDocRef);
+
+        if (coolingChemicalsDocSnap.exists()) {
+          const { name, signature } = condenserChemicalsDocSnap.data();
+          setCoolingTechnicalName(name || '');
+          setCoolingTowerChemicalsSignature(signature || '');
         }
 
         const notesDocRef = doc(db, 'notes', 'technicianInfo');
@@ -441,7 +460,11 @@ const Userform = () => {
             onSaveAndExit={() => handleSaveAllData('exit')}
             columnLabels={[`Available empty Jerry Cans in plants (${formattedWeekStart})`]}
             handleOpenSignatureModal={handleOpenSignatureModal}
-            noteSignature={condenserChemicalsSignature}
+            noteSignature={coolingTowerChemicalsSignature}
+            setCoolingTechnicalName={setCoolingTechnicalName}
+            setTechnicianName={setTechnicianNameCooling}
+            technicianName={technicianNameCooling}
+            setNoteSignature={setCoolingTowerChemicalsSignature}
           />
         </TabPanel>
         <TabPanel value={tabIndex} index={4}>

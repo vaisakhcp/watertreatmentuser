@@ -3,7 +3,7 @@ import {
   Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, Button, Modal, Typography, IconButton, Link, Popper
 } from '@mui/material';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { collection, getDocs,getDoc, setDoc, doc } from 'firebase/firestore';
 import { db } from './firebase';
 import SignaturePad from 'react-signature-canvas';
 import AddIcon from '@mui/icons-material/Add';
@@ -11,7 +11,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 
-const CoolingTowerChemicalsComponent = ({ updateData }) => {
+const CoolingTowerChemicalsComponent = ({ updateData,setTechnicianName,technicianName, noteSignature, setNoteSignature  }) => {
   const [coolingTowerChemicalsLabels, setCoolingTowerChemicalsLabels] = useState([
     { label: 'Hydrochloric Acid (25Kg)', value: '', action: '' },
     { label: 'Sodium Hypochlorite (25Kg)', value: '', action: '' },
@@ -28,7 +28,6 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
     additionalDataTableOrder.map(label => ({ label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }))
   );
 
-  const [technicianName, setTechnicianName] = useState('');
   const [coolingTowerChemicalsSignature, setCoolingTowerChemicalsSignature] = useState('');
   const [openSignatureModal, setOpenSignatureModal] = useState(false);
   const sigPadRef = useRef(null);
@@ -53,44 +52,59 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
-        const additionalSnapshop = await getDocs(collection(db, 'additionalDataTable'));
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const additionalData = additionalSnapshop.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (additionalData.length > 0) {
-          const sortedAdditionalData = additionalDataTableOrder.map(label => 
-            additionalData.find(item => item.label === label) || { label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }
-          );
-          setAdditionalDataTable(sortedAdditionalData);
-        }
+  const fetchData = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'coolingTowerChemicals1'));
+      const additionalSnapshot = await getDocs(collection(db, 'additionalDataTable'));
+
+      // Process chemicals data
+      const chemicalsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
 
-        if (data.length > 0) {
-          const chemicalsData = data.filter(item => !['technicianName', 'signature'].includes(item.id));
-          
-  
-          // If additionalData is empty, retain the current state
-         
-  
-          setCoolingTowerChemicalsLabels(chemicalsData.length ? chemicalsData : coolingTowerChemicalsLabels);
-  
-          // Fetch technician name and signature
-          const technicianDoc = data.find(item => item.id === 'technicianInfo');
-          if (technicianDoc) {
-            setTechnicianName(technicianDoc.name || '');
-            setCoolingTowerChemicalsSignature(technicianDoc.signature || '');
-          }
+
+      console.log('casc',chemicalsData)
+      if (chemicalsData.length > 0) {
+        const filteredChemicalsData = chemicalsData.filter(item => 
+          !['technicianInfo'].includes(item.id)
+        );
+        if (filteredChemicalsData.length > 0) {
+          setCoolingTowerChemicalsLabels(filteredChemicalsData);
         }
-      } catch (error) {
-        console.error('Error fetching cooling tower chemicals data:', error);
       }
-    };
-  
-    fetchData();
-  }, []);
-  
+
+      const docRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo'); 
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const { name, signature } = docSnap.data();
+        console.log('sign',signature)
+        setTechnicianName(name || '');
+        setNoteSignature(signature || '');
+      }
+      // Process additional data
+      const additionalData = additionalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (additionalData.length > 0) {
+        const sortedAdditionalData = additionalDataTableOrder.map(label => 
+          additionalData.find(item => item.label === label) || { label, value: '', type: label.includes('result as of: ') ? 'date' : 'text' }
+        );
+        setAdditionalDataTable(sortedAdditionalData);
+      }
+
+      // Fetch technician info
+      const technicianDoc = chemicalsData.find(item => item.id === 'technicianInfo');
+      if (technicianDoc) {
+        setTechnicianName(technicianDoc.name || '');
+        setCoolingTowerChemicalsSignature(technicianDoc.signature || '');
+      }
+
+    } catch (error) {
+      console.error('Error fetching cooling tower chemicals data:', error);
+    }
+  };
+
+  fetchData();
+}, []); // Empty dependency array ensures this runs once on component mount
+
+const [currentRow, setCurrentRow] = useState(null);
 
   useEffect(() => {
     updateData('additionalDataTable', additionalDataTable);
@@ -99,31 +113,30 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
 
   const handleOpenSignatureModal = () => {
     setOpenSignatureModal(true);
+
   };
 
   const handleSign = async () => {
+    // const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
+    // setCoolingTowerChemicalsSignature(signatureDataUrl);
+    // setOpenSignatureModal(false);
+
+    // // Save the signature to the database
+    // const docRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo');
+    // await setDoc(docRef, { signature: signatureDataUrl, name: technicianName });
     const signatureDataUrl = sigPadRef.current.getTrimmedCanvas().toDataURL('image/png');
-    setCoolingTowerChemicalsSignature(signatureDataUrl);
+    setNoteSignature(signatureDataUrl);
+
+   
+    await setDoc(doc(db, 'coolingTowerChemicals1', 'technicianInfo'), {
+      name: technicianName,
+      signature: noteSignature
+    });
+
     setOpenSignatureModal(false);
-
-    // Save the signature to the database
-    const docRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo');
-    await setDoc(docRef, { signature: signatureDataUrl, name: technicianName });
   };
 
-  const handleTechnicianNameChange = async (e) => {
-    const newName = e.target.value;
-    setTechnicianName(newName);
-
-    const docRef = doc(db, 'coolingTowerChemicals1', 'technicianInfo');
-    await setDoc(docRef, { signature: coolingTowerChemicalsSignature, name: newName });
-  };
-
-  const handleLabelChange = (index, label) => {
-    const updatedLabels = [...coolingTowerChemicalsLabels];
-    updatedLabels[index].label = label;
-    setCoolingTowerChemicalsLabels(updatedLabels);
-  };
+ 
 
   const handleValueChange = (index, value) => {
     const updatedData = [...coolingTowerChemicalsLabels];
@@ -167,6 +180,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
 
   return (
     <>
+      {JSON.stringify(coolingTowerChemicalsLabels)}
       <TableContainer component={Paper} sx={{ overflowX: 'auto', mb: 3 }}>
         <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
           <TableHead>
@@ -289,7 +303,7 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
         <TextField
           label="Name"
           value={technicianName}
-          onChange={handleTechnicianNameChange}
+          onChange={(e) => setTechnicianName(e.target.value)}
           sx={{ flex: 1 }}
         />
         <Box
@@ -304,8 +318,8 @@ const CoolingTowerChemicalsComponent = ({ updateData }) => {
           }}
           onClick={handleOpenSignatureModal}
         >
-          {coolingTowerChemicalsSignature ? (
-            <img src={coolingTowerChemicalsSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
+          {noteSignature ? (
+            <img src={noteSignature} alt="Signature" style={{ width: '100px', height: '50px' }} />
           ) : (
             'Sign'
           )}
